@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ClientApp from './apps/ClientApp';
 import RestaurantApp from './apps/RestaurantApp';
+import DriverApp from './apps/DriverApp';
+import AdminApp from './apps/AdminApp';
 
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -65,6 +67,42 @@ export default function App() {
               <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold text-red-500">Accès Refusé</h1>
                 <p>Vous n'êtes pas un restaurateur.</p>
+                <a href="/" className="text-blue-500 underline mt-4 block">Retour à l'accueil</a>
+              </div>
+            )
+          } 
+        />
+
+        {/* Driver App Route */}
+        <Route 
+          path="/driver/*" 
+          element={
+            !token ? (
+              <Navigate to="/" replace />
+            ) : user?.role === 'driver' || user?.role === 'admin' ? (
+              <DriverApp token={token} onLogout={handleLogout} user={user} />
+            ) : (
+              <div className="p-8 text-center">
+                <h1 className="text-2xl font-bold text-red-500">Accès Refusé</h1>
+                <p>Vous n'êtes pas un livreur.</p>
+                <a href="/" className="text-blue-500 underline mt-4 block">Retour à l'accueil</a>
+              </div>
+            )
+          } 
+        />
+
+        {/* Admin App Route */}
+        <Route 
+          path="/admin/*" 
+          element={
+            !token ? (
+              <Navigate to="/" replace />
+            ) : user?.role === 'admin' ? (
+              <AdminApp token={token} onLogout={handleLogout} user={user} />
+            ) : (
+              <div className="p-8 text-center">
+                <h1 className="text-2xl font-bold text-red-500">Accès Refusé</h1>
+                <p>Vous n'êtes pas administrateur.</p>
                 <a href="/" className="text-blue-500 underline mt-4 block">Retour à l'accueil</a>
               </div>
             )

@@ -22,4 +22,17 @@ export class MongoUserRepo implements IUserRepo {
     if (!d) throw new Error('User not found');
     return new User(d._id.toString(), d.name||'', d.email||'', d.phone||'', d.role||'', d.password, d.restaurantId);
   }
+  async findAll(): Promise<User[]> {
+    const docs = await UserModel.find().sort({ createdAt: -1 });
+    return docs.map(d => new User(d._id.toString(), d.name||'', d.email||'', d.phone||'', d.role||'', d.password, d.restaurantId));
+  }
+  async updateRole(id: string, role: string, restaurantId?: string): Promise<User | null> {
+    const updateData: any = { role };
+    if (restaurantId !== undefined) {
+      updateData.restaurantId = restaurantId;
+    }
+    const d = await UserModel.findByIdAndUpdate(id, updateData, { new: true });
+    if (!d) return null;
+    return new User(d._id.toString(), d.name||'', d.email||'', d.phone||'', d.role||'', d.password, d.restaurantId);
+  }
 }

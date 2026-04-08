@@ -209,6 +209,8 @@ export default function App() {
         setToken(data.token);
         if (data.user?.role === 'restaurant' || data.user?.role === 'admin') {
           window.location.href = '/restaurant';
+        } else if (data.user?.role === 'driver') {
+          window.location.href = '/driver';
         }
       }
     } catch (err: any) {
@@ -882,6 +884,34 @@ export default function App() {
                       className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-orange-500 text-white hover:bg-orange-600"
                     >
                       Accéder au Dashboard
+                    </a>
+                  </div>
+                ) : null}
+
+                {/* Driver App Link */}
+                {(profileData as any).role === 'driver' || (profileData as any).role === 'admin' ? (
+                  <div className={cn("p-4 rounded-2xl shadow-sm transition-colors mb-6", isDark ? "bg-gray-900" : "bg-white")}>
+                    <h3 className="font-bold text-lg mb-2">Espace Livreur</h3>
+                    <p className="text-sm text-gray-500 mb-4">Gérez vos courses et livraisons.</p>
+                    <a 
+                      href="/driver"
+                      className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-green-500 text-white hover:bg-green-600"
+                    >
+                      Accéder à l'App Livreur
+                    </a>
+                  </div>
+                ) : null}
+
+                {/* Admin App Link */}
+                {(profileData as any).role === 'admin' ? (
+                  <div className={cn("p-4 rounded-2xl shadow-sm transition-colors mb-6", isDark ? "bg-gray-900" : "bg-white")}>
+                    <h3 className="font-bold text-lg mb-2">Administration</h3>
+                    <p className="text-sm text-gray-500 mb-4">Gérez les utilisateurs et les rôles.</p>
+                    <a 
+                      href="/admin"
+                      className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-purple-500 text-white hover:bg-purple-600"
+                    >
+                      Accéder au Dashboard Admin
                     </a>
                   </div>
                 ) : null}

@@ -4,4 +4,6 @@ export interface IUserRepo {
   findByEmail(email: string): Promise<User | null>;
   create(user: User): Promise<User>;
   update(user: User): Promise<User>;
+  findAll(): Promise<User[]>;
+  updateRole(id: string, role: string, restaurantId?: string): Promise<User | null>;
 }
