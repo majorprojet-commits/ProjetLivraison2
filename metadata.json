@@ -1,0 +1,7 @@
+{
+  "name": "Food Delivery Web Prototype",
+  "description": "A responsive web prototype of a food delivery app (Uber Eats clone) featuring restaurant listings, menus, and a cart system.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
