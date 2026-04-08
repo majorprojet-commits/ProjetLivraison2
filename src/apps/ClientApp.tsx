@@ -914,7 +914,30 @@ export default function App() {
                       Accéder au Dashboard Admin
                     </a>
                   </div>
-                ) : null}
+                ) : (
+                  <div className={cn("p-4 rounded-2xl shadow-sm transition-colors mb-6", isDark ? "bg-gray-900" : "bg-white")}>
+                    <h3 className="font-bold text-lg mb-2">Mode Démo</h3>
+                    <p className="text-sm text-gray-500 mb-4">Passez administrateur pour tester le dashboard.</p>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/users/me/promote', {
+                            method: 'PUT',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          });
+                          if (res.ok) {
+                            window.location.reload();
+                          }
+                        } catch (e) {
+                          console.error(e);
+                        }
+                      }}
+                      className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-gray-800 text-white hover:bg-gray-700"
+                    >
+                      Devenir Administrateur (Test)
+                    </button>
+                  </div>
+                )}
 
                 {/* Logout */}
                 <button 

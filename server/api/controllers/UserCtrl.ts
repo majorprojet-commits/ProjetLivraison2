@@ -48,4 +48,14 @@ export class UserCtrl {
       res.json(UserVM.format(data));
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
+
+  promoteToAdmin = async (req: AuthRequest, res: Response) => {
+    try {
+      // Endpoint de test pour permettre de voir le dashboard admin facilement
+      if (!this.updateUserRole) return res.status(500).json({ error: 'Not configured' });
+      const data = await this.updateUserRole.execute(req.user.id, 'admin');
+      if (!data) return res.status(404).json({ error: 'Not found' });
+      res.json(UserVM.format(data));
+    } catch (e) { res.status(500).json({ error: 'Server Error' }); }
+  };
 }

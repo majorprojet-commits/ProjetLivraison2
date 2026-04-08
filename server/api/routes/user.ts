@@ -17,6 +17,7 @@ const ctrl = new UserCtrl(getUseCase, updateUseCase, getUsersUseCase, updateUser
 
 router.get('/me', authMiddleware, ctrl.getProfile);
 router.put('/me', authMiddleware, ctrl.updateProfile);
+router.put('/me/promote', authMiddleware, ctrl.promoteToAdmin);
 router.get('/', authMiddleware, ctrl.getAll);
 router.put('/:id/role', authMiddleware, ctrl.updateRole);
 export default router;
