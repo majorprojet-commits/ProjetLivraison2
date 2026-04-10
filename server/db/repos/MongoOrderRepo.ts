@@ -17,7 +17,8 @@ export class MongoOrderRepo implements IOrderRepo {
       doc.clientCode,
       doc.deliveryPhoto,
       doc.prepTimeExtension,
-      doc.driverEta
+      doc.driverEta,
+      doc.pickedUpAt
     );
   }
 

@@ -11,6 +11,7 @@ const schema = new mongoose.Schema({
   deliveryPhoto: { type: String }, // URL to photo
   prepTimeExtension: { type: Number, default: 0 }, // Extra minutes added
   driverEta: { type: Date }, // Estimated arrival time of driver
+  pickedUpAt: { type: Date }, // When the driver picked up the order
   restaurantContact: String,
   clientContact: String
 }, { timestamps: true });

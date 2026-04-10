@@ -3,6 +3,8 @@ import { Home, Search, Receipt, User, MapPin, Clock, Star, Heart, ChevronLeft, P
 import { CATEGORIES } from '../data';
 import { cn, fetchWithTimeout } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 const TRANSLATIONS = {
   fr: {
@@ -266,7 +268,16 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
       }
     };
     fetchData();
-  }, [token]);
+    
+    // Firestore Real-time Listener
+    if (token && profileData.id) {
+      const q = query(collection(db, 'orders'), where('userId', '==', profileData.id));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        fetchData();
+      });
+      return () => unsubscribe();
+    }
+  }, [token, profileData.id]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -871,6 +882,14 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
+                          <div className="flex gap-1">
+                            {order.status !== 'DELIVERED' && order.pickupCode && (
+                              <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded uppercase">Retrait: {order.pickupCode}</span>
+                            )}
+                            {order.status === 'IN_TRANSIT' && order.clientCode && (
+                              <span className="text-[10px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded uppercase">Code: {order.clientCode}</span>
+                            )}
+                          </div>
                           <span className={cn("text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1", 
                             order.status === 'IN_TRANSIT' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                           )}>

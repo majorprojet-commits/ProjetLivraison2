@@ -74,7 +74,7 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
     );
   }
 
-  const deliveringOrders = myOrders.filter(o => o.status === 'delivering');
+  const deliveringOrders = myOrders.filter(o => o.status === 'delivering' || o.status === 'picked_up');
   const completedOrders = myOrders.filter(o => o.status === 'delivered');
 
   const dailyEarnings = completedOrders.reduce((sum, o) => sum + (o.total * 0.1), 0); // Mock 10% commission for driver
@@ -142,8 +142,8 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
                 <OrderCard 
                   key={order.id} 
                   order={order} 
-                  onAction={() => updateStatus(order.id, 'delivered')} 
-                  actionText="Marquer Livrée" 
+                  onAction={(status) => updateStatus(order.id, status)} 
+                  actionText={order.status === 'picked_up' ? 'Marquer Livrée' : 'Marquer Récupérée'} 
                   actionColor="bg-orange-600" 
                 />
               ))}
@@ -186,15 +186,15 @@ function OrderCard({ order, onAction, actionText, actionColor, disabled = false 
   const [error, setError] = useState('');
 
   const handleConfirm = () => {
-    if (order.status === 'delivering') {
+    if (order.status === 'picked_up') {
       if (clientCodeInput.toUpperCase() === order.clientCode) {
-        onAction();
+        onAction('delivered');
         setShowConfirm(false);
       } else {
         setError('Code incorrect');
       }
     } else {
-      onAction();
+      onAction('picked_up');
     }
   };
 
@@ -239,13 +239,13 @@ function OrderCard({ order, onAction, actionText, actionColor, disabled = false 
         </div>
       </div>
 
-      {order.status === 'delivering' && !showConfirm && (
+      {order.status !== 'delivered' && !showConfirm && (
         <div className="grid grid-cols-2 gap-2 mb-4">
           <button 
             onClick={() => window.open('tel:0123456789')}
             className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 text-gray-600 font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 transition-colors"
           >
-            <Phone className="w-3 h-3" /> Appeler
+            <Phone className="w-3 h-3" /> {order.status === 'picked_up' ? 'Client' : 'Resto'}
           </button>
           <button 
             onClick={() => {}}
@@ -267,7 +267,7 @@ function OrderCard({ order, onAction, actionText, actionColor, disabled = false 
             </button>
           )}
 
-          {order.status === 'delivering' && showConfirm ? (
+          {order.status === 'picked_up' && showConfirm ? (
             <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 animate-in fade-in slide-in-from-bottom-2">
               <p className="text-[10px] font-black text-orange-800 uppercase tracking-widest mb-3 text-center">Confirmation Livraison</p>
               <div className="flex gap-2 mb-3">
@@ -293,11 +293,11 @@ function OrderCard({ order, onAction, actionText, actionColor, disabled = false 
             </div>
           ) : (
             <button 
-              onClick={() => order.status === 'delivering' ? setShowConfirm(true) : onAction()}
+              onClick={() => order.status === 'picked_up' ? setShowConfirm(true) : onAction('picked_up')}
               disabled={disabled}
               className={cn("w-full py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95", actionColor)}
             >
-              {actionText}
+              {order.status === 'delivering' ? 'Récupérer la commande' : actionText}
             </button>
           )}
         </div>

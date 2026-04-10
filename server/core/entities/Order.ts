@@ -12,6 +12,7 @@ export class Order {
     public clientCode?: string,
     public deliveryPhoto?: string,
     public prepTimeExtension?: number,
-    public driverEta?: Date
+    public driverEta?: Date,
+    public pickedUpAt?: Date
   ) {}
 }
