@@ -12,7 +12,7 @@ export class LoginUser {
     if (!isValid) throw new Error('Invalid credentials');
 
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, restaurantId: user.restaurantId },
       process.env.JWT_SECRET || 'super-secret-key',
       { expiresIn: '7d' }
     );

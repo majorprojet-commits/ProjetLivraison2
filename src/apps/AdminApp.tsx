@@ -767,10 +767,13 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
     image: '',
     available: true
   });
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
+    console.log("Submitting dish for restaurantId:", restaurantId);
     try {
       const res = await fetch(`/api/restaurants/${restaurantId}/menu`, {
         method: 'POST',
@@ -784,6 +787,7 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
         })
       });
 
+      console.log("Response status:", res.status);
       if (res.ok) {
         setIsModalOpen(false);
         setFormData({
@@ -795,9 +799,14 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
           available: true
         });
         onRefresh();
+      } else {
+        const data = await res.json();
+        console.error("Add dish failed:", data);
+        setError(data.error || "Une erreur est survenue lors de l'ajout du plat.");
       }
     } catch (error) {
-      console.error("Failed to add dish:", error);
+      console.error("Failed to add dish (exception):", error);
+      setError("Erreur de connexion au serveur.");
     } finally {
       setIsSubmitting(false);
     }
@@ -863,6 +872,12 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  {error}
+                </div>
+              )}
               <div className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nom du plat</label>

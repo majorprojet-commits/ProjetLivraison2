@@ -25,13 +25,17 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
   const [activeTab, setActiveTab] = useState('operations');
   const notificationSound = useRef<HTMLAudioElement | null>(null);
 
-  const restaurantId = user?.restaurantId || 'mock-restaurant-id';
+  const restaurantId = user?.restaurantId;
 
   useEffect(() => {
     notificationSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
   }, []);
 
   useEffect(() => {
+    if (!restaurantId) {
+      setIsLoading(false);
+      return;
+    }
     const fetchData = async () => {
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
