@@ -6,6 +6,7 @@ import { OrderModel } from './models/Order.js';
 
 const SEED_RESTAURANTS = [
   {
+    _id: 'r1',
     name: 'Burger & Co',
     rating: 4.8,
     deliveryTime: '20-30 min',
@@ -19,6 +20,7 @@ const SEED_RESTAURANTS = [
     ]
   },
   {
+    _id: 'r2',
     name: 'Sushi Master',
     rating: 4.9,
     deliveryTime: '35-45 min',
@@ -31,6 +33,7 @@ const SEED_RESTAURANTS = [
     ]
   },
   {
+    _id: 'r3',
     name: 'Pizza Napoli',
     rating: 4.6,
     deliveryTime: '25-40 min',

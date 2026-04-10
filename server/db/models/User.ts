@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 const schema = new mongoose.Schema({
+  _id: { type: String },
   name: String,
   email: { type: String, unique: true, required: true },
   phone: String,
