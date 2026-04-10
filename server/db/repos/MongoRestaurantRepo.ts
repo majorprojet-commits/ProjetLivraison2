@@ -12,4 +12,7 @@ export class MongoRestaurantRepo implements IRestaurantRepo {
     if (!d) return null;
     return new Restaurant(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[]);
   }
+  async updateMenu(id: string, menu: any[]): Promise<void> {
+    await RestaurantModel.findByIdAndUpdate(id, { menu });
+  }
 }

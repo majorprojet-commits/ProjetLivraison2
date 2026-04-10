@@ -770,7 +770,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
               <div className="px-4 py-6">
                 <h2 className="text-xl font-black mb-6">{t.popular}</h2>
                 <div className="flex flex-col gap-6">
-                  {restaurant?.menu.map((item: any) => {
+                  {restaurant?.menu.filter((i: any) => i.available !== false).map((item: any) => {
                     const cartItem = cart.find(i => i.itemId === item.id);
                     return (
                       <div 

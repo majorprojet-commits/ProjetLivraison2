@@ -39,63 +39,63 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
   const isSuperAdmin = currentUser?.role === 'admin';
   const restaurantId = currentUser?.restaurantId;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const headers = { 'Authorization': `Bearer ${token}` };
-        
-        if (isSuperAdmin) {
-          // Super Admin Data
-          const [uRes, rRes, sRes, zRes, dRes] = await Promise.all([
-            fetchWithTimeout('/api/users', { headers }),
-            fetchWithTimeout('/api/restaurants', { headers }),
-            fetchWithTimeout('/api/admin/stats', { headers }),
-            fetchWithTimeout('/api/admin/zones', { headers }),
-            fetchWithTimeout('/api/admin/disputes', { headers })
-          ]);
+  const fetchData = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      
+      if (isSuperAdmin) {
+        // Super Admin Data
+        const [uRes, rRes, sRes, zRes, dRes] = await Promise.all([
+          fetchWithTimeout('/api/users', { headers }),
+          fetchWithTimeout('/api/restaurants', { headers }),
+          fetchWithTimeout('/api/admin/stats', { headers }),
+          fetchWithTimeout('/api/admin/zones', { headers }),
+          fetchWithTimeout('/api/admin/disputes', { headers })
+        ]);
 
-          if (uRes.ok) setUsers(await uRes.json());
-          if (rRes.ok) setRestaurants(await rRes.json());
-          if (sRes.ok) dispatch(setAnalytics(await sRes.json()));
-          if (zRes.ok) setZones(await zRes.json());
-          if (dRes.ok) setDisputes(await dRes.json());
-        } else if (restaurantId) {
-          // Restaurant Owner Data
-          const menuRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/menu`, { headers });
-          if (menuRes.ok) dispatch(setMenu(await menuRes.json()));
+        if (uRes.ok) setUsers(await uRes.json());
+        if (rRes.ok) setRestaurants(await rRes.json());
+        if (sRes.ok) dispatch(setAnalytics(await sRes.json()));
+        if (zRes.ok) setZones(await zRes.json());
+        if (dRes.ok) setDisputes(await dRes.json());
+      } else if (restaurantId) {
+        // Restaurant Owner Data
+        const menuRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/menu`, { headers });
+        if (menuRes.ok) dispatch(setMenu(await menuRes.json()));
 
-          const reviewsRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/reviews`, { headers });
-          if (reviewsRes.ok) dispatch(setReviews(await reviewsRes.json()));
+        const reviewsRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/reviews`, { headers });
+        if (reviewsRes.ok) dispatch(setReviews(await reviewsRes.json()));
 
-          const ordersRes = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, { headers });
-          if (ordersRes.ok) dispatch(setOrders(await ordersRes.json()));
+        const ordersRes = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, { headers });
+        if (ordersRes.ok) dispatch(setOrders(await ordersRes.json()));
 
-          // Restaurant Analytics Mock (or fetch if implemented)
-          dispatch(setAnalytics({
-            dailyRevenue: 1250.50,
-            weeklyRevenue: 8400.00,
-            topDishes: [
-              { name: 'Burger Classic', sales: 45 },
-              { name: 'Pizza Margherita', sales: 38 }
-            ],
-            revenueHistory: [
-              { date: 'Lun', amount: 1100 },
-              { date: 'Mar', amount: 1300 },
-              { date: 'Mer', amount: 950 },
-              { date: 'Jeu', amount: 1400 },
-              { date: 'Ven', amount: 1800 },
-              { date: 'Sam', amount: 2100 },
-              { date: 'Dim', amount: 1600 }
-            ]
-          }));
-        }
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      } finally {
-        setIsLoading(false);
+        // Restaurant Analytics Mock
+        dispatch(setAnalytics({
+          dailyRevenue: 1250.50,
+          weeklyRevenue: 8400.00,
+          topDishes: [
+            { name: 'Burger Classic', sales: 45 },
+            { name: 'Pizza Margherita', sales: 38 }
+          ],
+          revenueHistory: [
+            { date: 'Lun', amount: 1100 },
+            { date: 'Mar', amount: 1300 },
+            { date: 'Mer', amount: 950 },
+            { date: 'Jeu', amount: 1400 },
+            { date: 'Ven', amount: 1800 },
+            { date: 'Sam', amount: 2100 },
+            { date: 'Dim', amount: 1600 }
+          ]
+        }));
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [token, isSuperAdmin, restaurantId, dispatch]);
 
@@ -283,7 +283,7 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
           {activeView === 'dashboard' && (isSuperAdmin ? <SuperAdminDashboard analytics={analytics} /> : <RestaurantDashboard analytics={analytics} />)}
           {activeView === 'restaurants' && isSuperAdmin && <RestaurantsManagement restaurants={restaurants} onUpdateStatus={handleUpdateRestaurantStatus} />}
           {activeView === 'users' && isSuperAdmin && <UsersManagement users={users} onBan={handleBanUser} />}
-          {activeView === 'menu' && !isSuperAdmin && <MenuView menu={menu} />}
+          {activeView === 'menu' && !isSuperAdmin && <MenuView menu={menu} token={token} restaurantId={restaurantId} onRefresh={fetchData} />}
           {activeView === 'finance' && !isSuperAdmin && <FinanceView orders={orders} />}
           {activeView === 'reviews' && !isSuperAdmin && <ReviewsView reviews={reviews} />}
           {activeView === 'promos' && !isSuperAdmin && <PromosView />}
@@ -756,12 +756,61 @@ function StatCard({ label, value, icon: Icon, trend, color }: any) {
   );
 }
 
-function MenuView({ menu }: { menu: any[] }) {
+function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token: string, restaurantId: string, onRefresh: () => void }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: 'Plat',
+    image: '',
+    available: true
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}/menu`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...formData,
+          price: parseFloat(formData.price)
+        })
+      });
+
+      if (res.ok) {
+        setIsModalOpen(false);
+        setFormData({
+          name: '',
+          description: '',
+          price: '',
+          category: 'Plat',
+          image: '',
+          available: true
+        });
+        onRefresh();
+      }
+    } catch (error) {
+      console.error("Failed to add dish:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-black">Ma Carte</h3>
-        <button className="bg-black text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-gray-200 active:scale-95 transition-transform">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-black text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-gray-200 active:scale-95 transition-transform"
+        >
           <Plus className="w-5 h-5" /> Ajouter un Plat
         </button>
       </div>
@@ -770,7 +819,7 @@ function MenuView({ menu }: { menu: any[] }) {
         {menu.map((item: any) => (
           <div key={item.id} className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm group">
             <div className="h-48 relative">
-              <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img src={item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute top-4 right-4 flex gap-2">
                 <button className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-blue-600 transition-colors">
                   <Edit3 className="w-4 h-4" />
@@ -801,6 +850,124 @@ function MenuView({ menu }: { menu: any[] }) {
           </div>
         ))}
       </div>
+
+      {/* Add Dish Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl my-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black">Ajouter un nouveau plat</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <XCircle className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nom du plat</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    placeholder="Ex: Burger Gourmet"
+                    className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500/20" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Description</label>
+                  <textarea 
+                    required
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
+                    placeholder="Décrivez votre plat..."
+                    rows={3}
+                    className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500/20 resize-none" 
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Prix (€)</label>
+                    <input 
+                      required
+                      type="number" 
+                      step="0.01"
+                      value={formData.price}
+                      onChange={e => setFormData({...formData, price: e.target.value})}
+                      placeholder="12.50"
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500/20" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Catégorie</label>
+                    <select 
+                      value={formData.category}
+                      onChange={e => setFormData({...formData, category: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500/20 appearance-none"
+                    >
+                      <option value="Entrée">Entrée</option>
+                      <option value="Plat">Plat</option>
+                      <option value="Dessert">Dessert</option>
+                      <option value="Boisson">Boisson</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">URL de l'image</label>
+                  <input 
+                    type="url" 
+                    value={formData.image}
+                    onChange={e => setFormData({...formData, image: e.target.value})}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500/20" 
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                  <div>
+                    <p className="text-sm font-black text-gray-900">Disponible immédiatement</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Le plat apparaîtra sur la carte</p>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setFormData({...formData, available: !formData.available})}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative",
+                      formData.available ? "bg-green-500" : "bg-gray-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform",
+                      formData.available ? "translate-x-7" : "translate-x-1"
+                    )} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)} 
+                  className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-500 font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-[2] py-4 rounded-2xl bg-black text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-gray-200 hover:bg-gray-900 transition-colors disabled:opacity-50"
+                >
+                  {isSubmitting ? "Ajout en cours..." : "Ajouter le plat"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
