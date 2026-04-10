@@ -6,6 +6,8 @@ const schema = new mongoose.Schema({
   image: String,
   deliveryTime: String,
   deliveryFee: Number,
-  menu: Array
+  menu: Array,
+  status: { type: String, enum: ['active', 'suspended', 'pending'], default: 'active' },
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 export const RestaurantModel = mongoose.model('Restaurant', schema);

@@ -5,7 +5,7 @@ import { UpdateUser } from '../../usecases/UpdateUser.js';
 import { GetUsers } from '../../usecases/GetUsers.js';
 import { UpdateUserRole } from '../../usecases/UpdateUserRole.js';
 import { MongoUserRepo } from '../../db/repos/MongoUserRepo.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 const repo = new MongoUserRepo();
@@ -18,6 +18,6 @@ const ctrl = new UserCtrl(getUseCase, updateUseCase, getUsersUseCase, updateUser
 router.get('/me', authMiddleware, ctrl.getProfile);
 router.put('/me', authMiddleware, ctrl.updateProfile);
 router.put('/me/promote', authMiddleware, ctrl.promoteToAdmin);
-router.get('/', authMiddleware, ctrl.getAll);
-router.put('/:id/role', authMiddleware, ctrl.updateRole);
+router.get('/', authMiddleware, roleMiddleware(['admin']), ctrl.getAll);
+router.put('/:id/role', authMiddleware, roleMiddleware(['admin']), ctrl.updateRole);
 export default router;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Search, Receipt, User, MapPin, Clock, Star, ChevronLeft, Plus, Minus, ShoppingBag, Moon, Sun, Globe, X, Tag, Calendar, CreditCard, Edit2, Check, LogOut, Package, CheckCircle, ChevronRight, ChevronDown, ChevronUp, Phone, MessageCircle, Navigation } from 'lucide-react';
+import { Home, Search, Receipt, User, MapPin, Clock, Star, Heart, ChevronLeft, Plus, Minus, ShoppingBag, Moon, Sun, Globe, X, Tag, Calendar, CreditCard, Edit2, Check, LogOut, Package, CheckCircle, ChevronRight, ChevronDown, ChevronUp, Phone, MessageCircle, Navigation } from 'lucide-react';
 import { CATEGORIES } from '../data';
 import { cn, fetchWithTimeout } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,7 +59,31 @@ const TRANSLATIONS = {
     arriving: 'Arrivée imminente',
     driverName: 'Marc D.',
     resultsFor: 'Résultats pour',
-    loading: 'Chargement...'
+    loading: 'Chargement...',
+    favorites: 'Favoris',
+    savedAddresses: 'Adresses enregistrées',
+    homeAddress: 'Maison',
+    workAddress: 'Travail',
+    otherAddress: 'Autre',
+    deliveryInstructions: 'Instructions de livraison',
+    instructionsPlaceholder: 'Ex: Code 1234, laisser devant la porte...',
+    addTip: 'Ajouter un pourboire',
+    tipNote: '100% du pourboire est reversé au livreur',
+    noTip: 'Plus tard',
+    dietaryFilters: 'Régimes alimentaires',
+    veg: 'Végétarien',
+    vegan: 'Vegan',
+    glutenFree: 'Sans gluten',
+    halal: 'Halal',
+    rateOrder: 'Noter la commande',
+    howWasYourOrder: 'Comment était votre commande ?',
+    rateRestaurant: 'Notez le restaurant',
+    rateDriver: 'Notez le livreur',
+    commentPlaceholder: 'Laissez un commentaire...',
+    submitReview: 'Envoyer l\'avis',
+    orderTracked: 'Commande suivie',
+    liveMap: 'Carte en direct',
+    courierPosition: 'Position du coursier',
   },
   en: {
     deliverNow: 'Deliver now',
@@ -115,9 +139,43 @@ const TRANSLATIONS = {
     arriving: 'Arriving soon',
     driverName: 'Mark D.',
     resultsFor: 'Results for',
-    loading: 'Loading...'
+    loading: 'Loading...',
+    favorites: 'Favorites',
+    savedAddresses: 'Saved Addresses',
+    homeAddress: 'Home',
+    workAddress: 'Work',
+    otherAddress: 'Other',
+    deliveryInstructions: 'Delivery Instructions',
+    instructionsPlaceholder: 'e.g. Code 1234, leave at the door...',
+    addTip: 'Add a tip',
+    tipNote: '100% of the tip goes to the driver',
+    noTip: 'Later',
+    dietaryFilters: 'Dietary Filters',
+    veg: 'Vegetarian',
+    vegan: 'Vegan',
+    glutenFree: 'Gluten-free',
+    halal: 'Halal',
+    rateOrder: 'Rate Order',
+    howWasYourOrder: 'How was your order?',
+    rateRestaurant: 'Rate the restaurant',
+    rateDriver: 'Rate the driver',
+    commentPlaceholder: 'Leave a comment...',
+    submitReview: 'Submit Review',
+    orderTracked: 'Order Tracked',
+    liveMap: 'Live Map',
+    courierPosition: 'Courier Position',
   }
 };
+
+const PROMOTIONS = [
+  { id: 'p1', title: 'Livraison gratuite', subtitle: 'Sur votre première commande', color: 'bg-green-600', image: 'https://images.unsplash.com/photo-1526367790999-0150786486a9?auto=format&fit=crop&w=400&q=80' },
+  { id: 'p2', title: '-50% sur les Burgers', subtitle: 'Offre limitée dans le temps', color: 'bg-orange-500', image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80' },
+  { id: 'p3', title: 'Soirée Sushi', subtitle: '1 acheté = 1 offert', color: 'bg-red-600', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=400&q=80' },
+];
+
+const Skeleton = ({ className, key }: { className?: string, key?: any }) => (
+  <div className={cn("animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl", className)} key={key} />
+);
 
 export default function ClientApp({ token: propToken, user: propUser, onLogout }: { token: string, user: any, onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState('home');
@@ -163,6 +221,20 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [trackingOrder, setTrackingOrder] = useState<any | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [sortBy, setSortBy] = useState<'rating' | 'time' | 'default'>('default');
+  const [priceFilter, setPriceFilter] = useState<number | null>(null);
+  const [dietaryFilter, setDietaryFilter] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [savedAddresses, setSavedAddresses] = useState([
+    { id: '1', label: 'Maison', address: '123 Rue de la Paix, Paris', icon: 'home' },
+    { id: '2', label: 'Travail', address: '45 Avenue des Champs-Élysées, Paris', icon: 'briefcase' }
+  ]);
+  const [selectedAddressId, setSelectedAddressId] = useState('1');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
+  const [tipAmount, setTipAmount] = useState<number>(0);
+  const [reviewModalOrder, setReviewModalOrder] = useState<any | null>(null);
+  const [reviewData, setReviewData] = useState({ restaurantRating: 5, driverRating: 5, comment: '' });
 
   const t = TRANSLATIONS[lang];
   const restaurant = restaurants.find(r => r.id === selectedRestaurant);
@@ -264,7 +336,10 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
         body: JSON.stringify({
           restaurantId: selectedRestaurant,
           items: cart,
-          total: cartTotal
+          total: cartTotal + tipAmount,
+          address: savedAddresses.find(a => a.id === selectedAddressId)?.address,
+          instructions: deliveryInstructions,
+          tip: tipAmount
         })
       });
       if (res.ok) {
@@ -332,16 +407,49 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
     orderFilter === 'active' ? order.status === 'PENDING' || order.status === 'IN_TRANSIT' : order.status === 'DELIVERED'
   );
 
-  const filteredRestaurants = restaurants.filter(r => 
-    r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    r.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    r.menu?.some((item: any) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredRestaurants = restaurants.filter(r => {
+    const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      r.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      r.menu?.some((item: any) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesDietary = !dietaryFilter || r.tags.some((tag: string) => tag.toLowerCase() === dietaryFilter.toLowerCase());
+    const matchesFavorites = sortBy !== 'favorites' || favorites.includes(r.id);
+    
+    return matchesSearch && matchesDietary && matchesFavorites;
+  });
+
+  const toggleFavorite = (restaurantId: string) => {
+    setFavorites(prev => 
+      prev.includes(restaurantId) 
+        ? prev.filter(id => id !== restaurantId) 
+        : [...prev, restaurantId]
+    );
+  };
 
   if (isLoading) {
     return (
-      <div className={cn("flex justify-center items-center min-h-screen font-sans", isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black")}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current"></div>
+      <div className={cn("flex justify-center min-h-screen font-sans transition-colors duration-300", isDark ? "bg-gray-900" : "bg-gray-100")}>
+        <div className={cn("w-full max-w-md min-h-screen shadow-2xl relative overflow-hidden flex flex-col transition-colors duration-300", isDark ? "bg-gray-900" : "bg-white")}>
+          <div className="p-4 pt-12 space-y-6">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-10 w-10 rounded-full" />
+            </div>
+            <Skeleton className="h-40 w-full" />
+            <div className="flex gap-4 overflow-hidden">
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 w-20 flex-shrink-0" />)}
+            </div>
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-48 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -384,42 +492,72 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
             >
               {/* Header */}
               <div className={cn("sticky top-0 z-10 px-4 pt-6 pb-4 shadow-sm transition-colors", isDark ? "bg-gray-900" : "bg-white")}>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <button 
                         onClick={() => setDeliveryMode('now')}
-                        className={cn("text-xs font-bold px-2 py-1 rounded-full transition-colors", deliveryMode === 'now' ? (isDark ? "bg-white text-black" : "bg-black text-white") : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400")}
+                        className={cn("text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full transition-colors", deliveryMode === 'now' ? (isDark ? "bg-white text-black" : "bg-black text-white") : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400")}
                       >
                         {t.deliverNow}
                       </button>
                       <button 
                         onClick={() => setDeliveryMode('scheduled')}
-                        className={cn("text-xs font-bold px-2 py-1 rounded-full transition-colors", deliveryMode === 'scheduled' ? (isDark ? "bg-white text-black" : "bg-black text-white") : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400")}
+                        className={cn("text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full transition-colors", deliveryMode === 'scheduled' ? (isDark ? "bg-white text-black" : "bg-black text-white") : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400")}
                       >
                         {t.scheduled}
                       </button>
                     </div>
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <h1 className="text-sm font-bold truncate max-w-[200px]">123 Rue de la Livraison, Paris</h1>
-                      <MapPin className={cn("w-4 h-4", isDark ? "text-white" : "text-black")} />
+                    <div className="flex items-center gap-1 cursor-pointer group" onClick={() => setActiveTab('profile')}>
+                      <span className="font-bold text-lg truncate max-w-[150px]">
+                        {savedAddresses.find(a => a.id === selectedAddressId)?.address.split(',')[0]}
+                      </span>
+                      <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
                     </div>
                   </div>
-                  <div 
-                    onClick={() => setActiveTab('profile')}
-                    className={cn("w-10 h-10 rounded-full flex items-center justify-center overflow-hidden cursor-pointer", isDark ? "bg-gray-800" : "bg-gray-200")}
-                  >
-                    <User className={cn("w-6 h-6", isDark ? "text-gray-400" : "text-gray-500")} />
+                  <div className="flex gap-2">
+                    <button className={cn("p-2 rounded-full transition-colors", isDark ? "bg-gray-800 hover:bg-gray-700" : "bg-gray-100 hover:bg-gray-200")}>
+                      <ShoppingBag className="w-5 h-5" />
+                    </button>
+                    <div 
+                      onClick={() => setActiveTab('profile')}
+                      className={cn("w-10 h-10 rounded-full flex items-center justify-center overflow-hidden cursor-pointer", isDark ? "bg-gray-800" : "bg-gray-200")}
+                    >
+                      <User className={cn("w-6 h-6", isDark ? "text-gray-400" : "text-gray-500")} />
+                    </div>
                   </div>
                 </div>
 
+                {/* Promotions Carousel */}
+                <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
+                  {PROMOTIONS.map(promo => (
+                    <div 
+                      key={promo.id}
+                      className={cn("flex-shrink-0 w-[85%] h-40 rounded-3xl p-6 relative overflow-hidden snap-center cursor-pointer", promo.color)}
+                    >
+                      <div className="relative z-10 h-full flex flex-col justify-center max-w-[60%]">
+                        <h3 className="text-white font-black text-xl leading-tight mb-1">{promo.title}</h3>
+                        <p className="text-white/80 text-xs font-medium">{promo.subtitle}</p>
+                      </div>
+                      <img 
+                        src={promo.image} 
+                        alt="" 
+                        className="absolute right-[-20px] top-1/2 -translate-y-1/2 h-[120%] w-1/2 object-cover rotate-12 opacity-90"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  ))}
+                </div>
+
                 {/* Search Bar */}
-                <div className="mt-4 relative">
+                <div className="mt-2 relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <Search className="w-5 h-5 text-gray-400" />
                   </div>
                   <input 
                     type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t.searchPlaceholder} 
                     className={cn(
                       "w-full rounded-full py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-colors",
@@ -431,23 +569,99 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
 
               {/* Categories */}
               <div className="px-4 py-6">
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex gap-6 overflow-x-auto no-scrollbar pb-2">
                   {CATEGORIES.map(cat => (
-                    <div key={cat.id} className="flex flex-col items-center gap-2 min-w-[70px]">
-                      <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-colors", isDark ? "bg-gray-800" : "bg-gray-100")}>
+                    <button 
+                      key={cat.id} 
+                      onClick={() => setSearchQuery(cat.name)}
+                      className="flex flex-col items-center gap-2 flex-shrink-0 group"
+                    >
+                      <div className={cn(
+                        "w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-all group-hover:scale-110 group-active:scale-95",
+                        isDark ? "bg-gray-800" : "bg-gray-100"
+                      )}>
                         {cat.icon}
                       </div>
-                      <span className={cn("text-xs font-medium", isDark ? "text-gray-300" : "text-gray-700")}>{cat.name}</span>
-                    </div>
+                      <span className="text-xs font-bold">{cat.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="px-4 flex flex-col gap-4 mb-6">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                  <button 
+                    onClick={() => setSortBy(sortBy === 'rating' ? 'default' : 'rating')}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border",
+                      sortBy === 'rating' 
+                        ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white" 
+                        : (isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-gray-200 text-gray-600")
+                    )}
+                  >
+                    Note 4.5+
+                  </button>
+                  <button 
+                    onClick={() => setSortBy(sortBy === 'time' ? 'default' : 'time')}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border",
+                      sortBy === 'time' 
+                        ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white" 
+                        : (isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-gray-200 text-gray-600")
+                    )}
+                  >
+                    Moins de 30 min
+                  </button>
+                  <button 
+                    onClick={() => setSortBy(sortBy === 'favorites' ? 'default' : 'favorites')}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border flex items-center gap-2",
+                      sortBy === 'favorites' 
+                        ? "bg-red-500 text-white border-red-500" 
+                        : (isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-gray-200 text-gray-600")
+                    )}
+                  >
+                    <Heart className={cn("w-3 h-3", sortBy === 'favorites' ? "fill-current" : "")} />
+                    Favoris
+                  </button>
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                  {[
+                    { id: 'veg', name: t.veg, icon: '🥗' },
+                    { id: 'vegan', name: t.vegan, icon: '🌱' },
+                    { id: 'glutenfree', name: t.glutenFree, icon: '🌾' },
+                    { id: 'halal', name: t.halal, icon: '🌙' }
+                  ].map(diet => (
+                    <button
+                      key={diet.id}
+                      onClick={() => setDietaryFilter(dietaryFilter === diet.id ? null : diet.id)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all border",
+                        dietaryFilter === diet.id
+                          ? "bg-green-500 text-white border-green-500"
+                          : (isDark ? "bg-gray-800 border-gray-700 text-gray-400" : "bg-gray-100 border-gray-200 text-gray-600")
+                      )}
+                    >
+                      <span>{diet.icon}</span>
+                      {diet.name}
+                    </button>
                   ))}
                 </div>
               </div>
 
               {/* Restaurant List */}
-              <div className="px-4 pb-6">
-                <h2 className="text-xl font-bold mb-4">{t.featured}</h2>
-                <div className="flex flex-col gap-6">
-                  {restaurants.map(restaurant => (
+              <div className="px-4 pb-12">
+                <h2 className="text-2xl font-black mb-6">{t.featured}</h2>
+                <div className="flex flex-col gap-8">
+                  {filteredRestaurants
+                    .sort((a, b) => {
+                      if (sortBy === 'rating') return b.rating - a.rating;
+                      if (sortBy === 'time') return parseInt(a.deliveryTime) - parseInt(b.deliveryTime);
+                      return 0;
+                    })
+                    .map(restaurant => (
                     <div 
                       key={restaurant.id} 
                       className="cursor-pointer group"
@@ -458,29 +672,49 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                         setPromoCode('');
                       }}
                     >
-                      <div className="relative h-48 rounded-2xl overflow-hidden mb-3">
+                      <div className="relative h-48 rounded-3xl overflow-hidden mb-3">
                         <img 
                           src={restaurant.image} 
                           alt={restaurant.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          referrerPolicy="no-referrer"
                         />
-                        <div className={cn("absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md", isDark ? "bg-gray-900 text-white" : "bg-white text-black")}>
+                        <div className={cn("absolute top-4 right-4 bg-white dark:bg-gray-900 px-2 py-1 rounded-lg shadow-lg flex items-center gap-1", isDark ? "text-white" : "text-black")}>
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          {restaurant.rating}
+                          <span className="text-xs font-bold">{restaurant.rating}</span>
                         </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(restaurant.id);
+                          }}
+                          className={cn(
+                            "absolute top-4 left-4 p-2 rounded-full shadow-lg backdrop-blur-md transition-transform active:scale-90",
+                            favorites.includes(restaurant.id) ? "bg-red-500 text-white" : "bg-white/80 text-gray-800 dark:bg-gray-800/80 dark:text-white"
+                          )}
+                        >
+                          <svg className={cn("w-4 h-4", favorites.includes(restaurant.id) ? "fill-current" : "fill-none")} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.84-8.84 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                        </button>
+                        {restaurant.deliveryFee === 0 && (
+                          <div className="absolute bottom-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                            Livraison Offerte
+                          </div>
+                        )}
                       </div>
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="text-lg font-bold">{restaurant.name}</h3>
+                          <h3 className="text-lg font-black">{restaurant.name}</h3>
                           <p className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>{restaurant.tags.join(' • ')}</p>
                         </div>
-                        <div className={cn("px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1", isDark ? "bg-gray-800 text-white" : "bg-gray-100 text-black")}>
+                        <div className={cn("px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1", isDark ? "bg-gray-800 text-white" : "bg-gray-100 text-black")}>
                           <Clock className="w-3 h-3" />
                           {restaurant.deliveryTime}
                         </div>
                       </div>
-                      <p className={cn("text-sm mt-1", isDark ? "text-gray-400" : "text-gray-500")}>
-                        {t.deliveryFee} : {restaurant.deliveryFee === 0 ? t.free : `${restaurant.deliveryFee}€`}
+                      <p className={cn("text-sm mt-1 font-medium", isDark ? "text-gray-400" : "text-gray-500")}>
+                        {restaurant.deliveryFee === 0 ? t.free : `${restaurant.deliveryFee.toFixed(2)} €`} de frais de livraison
                       </p>
                     </div>
                   ))}
@@ -523,29 +757,48 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
 
               {/* Menu */}
               <div className="px-4 py-6">
-                <h2 className="text-xl font-bold mb-4">{t.popular}</h2>
-                <div className="flex flex-col gap-4">
-                  {restaurant?.menu.map(item => {
+                <h2 className="text-xl font-black mb-6">{t.popular}</h2>
+                <div className="flex flex-col gap-6">
+                  {restaurant?.menu.map((item: any) => {
                     const cartItem = cart.find(i => i.itemId === item.id);
                     return (
-                      <div key={item.id} className={cn("p-4 rounded-2xl shadow-sm flex gap-4 transition-colors", isDark ? "bg-gray-900" : "bg-white")}>
+                      <div 
+                        key={item.id} 
+                        className={cn("p-4 rounded-3xl shadow-sm flex gap-4 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer", isDark ? "bg-gray-900" : "bg-white")}
+                        onClick={() => setSelectedItem(item)}
+                      >
                         <div className="flex-1">
-                          <h3 className="font-bold">{item.name}</h3>
+                          <h3 className="font-bold text-lg">{item.name}</h3>
                           <p className={cn("text-sm mt-1 line-clamp-2", isDark ? "text-gray-400" : "text-gray-500")}>{item.description}</p>
-                          <p className="font-medium mt-2">{item.price.toFixed(2)} €</p>
+                          <p className="font-black mt-2">{item.price.toFixed(2)} €</p>
                         </div>
                         <div className="relative w-28 h-28 flex-shrink-0">
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-xl" />
+                          <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover rounded-2xl" 
+                            referrerPolicy="no-referrer"
+                          />
                           {cartItem ? (
                             <div className={cn("absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full flex items-center shadow-lg", isDark ? "bg-white text-black" : "bg-black text-white")}>
-                              <button onClick={() => removeFromCart(item.id)} className="p-1.5"><Minus className="w-4 h-4" /></button>
-                              <span className="px-2 text-sm font-bold">{cartItem.quantity}</span>
-                              <button onClick={() => addToCart(item)} className="p-1.5"><Plus className="w-4 h-4" /></button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }} 
+                                className="p-1.5 hover:scale-110 transition-transform"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <span className="px-2 text-sm font-black">{cartItem.quantity}</span>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); addToCart(item); }} 
+                                className="p-1.5 hover:scale-110 transition-transform"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
                             </div>
                           ) : (
                             <button 
-                              onClick={() => addToCart(item)}
-                              className={cn("absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full p-2 shadow-lg border", isDark ? "bg-gray-800 text-white border-gray-700" : "bg-white text-black border-gray-100")}
+                              onClick={(e) => { e.stopPropagation(); addToCart(item); }}
+                              className={cn("absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full p-2 shadow-lg border transition-transform hover:scale-110", isDark ? "bg-gray-800 text-white border-gray-700" : "bg-white text-black border-gray-100")}
                             >
                               <Plus className="w-5 h-5" />
                             </button>
@@ -672,21 +925,31 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                         )}
                       </AnimatePresence>
 
-                      <button 
-                        onClick={() => {
-                          if (order.status === 'IN_TRANSIT') {
-                            setTrackingOrder(order);
-                          } else {
-                            handleReorder(order);
-                          }
-                        }}
-                        className={cn("w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors", 
-                        order.status === 'IN_TRANSIT' 
-                          ? (isDark ? "bg-white text-black hover:bg-gray-200" : "bg-black text-white hover:bg-gray-800")
-                          : (isDark ? "bg-gray-800 text-white hover:bg-gray-700" : "bg-gray-100 text-black hover:bg-gray-200")
-                      )}>
-                        {order.status === 'IN_TRANSIT' ? t.track : t.reorder}
-                      </button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            if (order.status === 'IN_TRANSIT') {
+                              setTrackingOrder(order);
+                            } else {
+                              handleReorder(order);
+                            }
+                          }}
+                          className={cn("flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors", 
+                          order.status === 'IN_TRANSIT' 
+                            ? (isDark ? "bg-white text-black hover:bg-gray-200" : "bg-black text-white hover:bg-gray-800")
+                            : (isDark ? "bg-gray-800 text-white hover:bg-gray-700" : "bg-gray-100 text-black hover:bg-gray-200")
+                        )}>
+                          {order.status === 'IN_TRANSIT' ? t.track : t.reorder}
+                        </button>
+                        {order.status === 'DELIVERED' && (
+                          <button 
+                            onClick={() => setReviewModalOrder(order)}
+                            className={cn("px-4 py-3 rounded-xl transition-colors", isDark ? "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20" : "bg-yellow-100 text-yellow-600 hover:bg-yellow-200")}
+                          >
+                            <Star className="w-5 h-5 fill-current" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -1129,17 +1392,69 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
               </div>
 
               <div className="flex-1 overflow-y-auto p-4">
-                {/* Delivery Scheduling in Cart */}
-                <div className={cn("p-4 rounded-2xl mb-6 flex items-center gap-4", isDark ? "bg-gray-800" : "bg-gray-50")}>
-                  <Calendar className="w-6 h-6 text-blue-500" />
-                  <div className="flex-1">
-                    <h3 className="font-bold text-sm">{t.scheduleDelivery}</h3>
-                    <select className={cn("mt-1 text-sm bg-transparent outline-none w-full", isDark ? "text-gray-300" : "text-gray-600")}>
-                      <option>{t.today} - {t.deliverNow}</option>
-                      <option>{t.today} - 19:00</option>
-                      <option>{t.today} - 20:00</option>
-                      <option>{t.tomorrow} - 12:00</option>
-                    </select>
+                {/* Address Selection */}
+                <div className="mb-6">
+                  <h3 className="font-black text-sm uppercase tracking-widest mb-3">{t.savedAddresses}</h3>
+                  <div className="flex flex-col gap-2">
+                    {savedAddresses.map(addr => (
+                      <button
+                        key={addr.id}
+                        onClick={() => setSelectedAddressId(addr.id)}
+                        className={cn(
+                          "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all",
+                          selectedAddressId === addr.id
+                            ? "border-black dark:border-white bg-black/5 dark:bg-white/5"
+                            : (isDark ? "border-gray-800 hover:border-gray-700" : "border-gray-100 hover:border-gray-200")
+                        )}
+                      >
+                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", isDark ? "bg-gray-800" : "bg-gray-100")}>
+                          {addr.icon === 'home' ? <Home className="w-5 h-5" /> : <ShoppingBag className="w-5 h-5" />}
+                        </div>
+                        <div className="text-left">
+                          <p className="font-bold text-sm">{addr.label}</p>
+                          <p className={cn("text-xs truncate max-w-[200px]", isDark ? "text-gray-400" : "text-gray-500")}>{addr.address}</p>
+                        </div>
+                        {selectedAddressId === addr.id && <Check className="w-5 h-5 ml-auto text-green-500" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Delivery Instructions */}
+                <div className="mb-6">
+                  <h3 className="font-black text-sm uppercase tracking-widest mb-3">{t.deliveryInstructions}</h3>
+                  <textarea
+                    value={deliveryInstructions}
+                    onChange={(e) => setDeliveryInstructions(e.target.value)}
+                    placeholder={t.instructionsPlaceholder}
+                    className={cn(
+                      "w-full p-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-black/5 min-h-[80px] resize-none",
+                      isDark ? "bg-gray-800 text-white placeholder-gray-500" : "bg-gray-100 text-black placeholder-gray-400"
+                    )}
+                  />
+                </div>
+
+                {/* Tip Selection */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-black text-sm uppercase tracking-widest">{t.addTip}</h3>
+                    <span className="text-[10px] font-bold text-gray-400">{t.tipNote}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {[0, 2, 3, 5].map(amount => (
+                      <button
+                        key={amount}
+                        onClick={() => setTipAmount(amount)}
+                        className={cn(
+                          "flex-1 py-3 rounded-xl text-sm font-bold transition-all border-2",
+                          tipAmount === amount
+                            ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black"
+                            : (isDark ? "border-gray-800 text-gray-400" : "border-gray-100 text-gray-600")
+                        )}
+                      >
+                        {amount === 0 ? t.noTip : `${amount}€`}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -1209,6 +1524,12 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                     <span className={isDark ? "text-gray-400" : "text-gray-500"}>{t.deliveryFee}</span>
                     <span>{deliveryFee === 0 ? t.free : `${deliveryFee.toFixed(2)} €`}</span>
                   </div>
+                  {tipAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className={isDark ? "text-gray-400" : "text-gray-500"}>{t.addTip}</span>
+                      <span>{tipAmount.toFixed(2)} €</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1219,9 +1540,154 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                   className={cn("w-full py-4 rounded-full font-bold text-lg flex justify-between px-6", isDark ? "bg-white text-black" : "bg-black text-white")}
                 >
                   <span>{t.checkout}</span>
-                  <span>{cartTotal.toFixed(2)} €</span>
+                  <span>{(cartTotal + tipAmount).toFixed(2)} €</span>
                 </button>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Item Detail Modal */}
+        <AnimatePresence>
+          {selectedItem && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => setSelectedItem(null)}
+            >
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className={cn("w-full max-w-md rounded-t-[40px] overflow-hidden flex flex-col max-h-[90vh]", isDark ? "bg-gray-900" : "bg-white")}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="relative h-64">
+                  <img src={selectedItem.image} alt={selectedItem.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <button 
+                    onClick={() => setSelectedItem(null)}
+                    className="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="p-8 flex-1 overflow-y-auto">
+                  <h2 className="text-3xl font-black mb-2">{selectedItem.name}</h2>
+                  <p className={cn("text-base mb-8", isDark ? "text-gray-400" : "text-gray-500")}>{selectedItem.description}</p>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-black text-lg mb-4">Options</h3>
+                      <div className="space-y-4">
+                        {['Sans oignons', 'Sauce supplémentaire', 'Format XL (+2.00€)'].map(opt => (
+                          <label key={opt} className="flex items-center justify-between cursor-pointer group">
+                            <span className={cn("font-medium transition-colors", isDark ? "text-gray-300 group-hover:text-white" : "text-gray-700 group-hover:text-black")}>{opt}</span>
+                            <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", isDark ? "border-gray-700" : "border-gray-200")}>
+                              <div className="w-3 h-3 rounded-full bg-black dark:bg-white opacity-0 transition-opacity" />
+                            </div>
+                            <input type="checkbox" className="hidden" />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-8 border-t border-gray-100 dark:border-gray-800">
+                  <button 
+                    onClick={() => {
+                      addToCart(selectedItem);
+                      setSelectedItem(null);
+                    }}
+                    className={cn("w-full py-5 rounded-full font-black text-xl flex justify-between px-8 transition-transform active:scale-95 shadow-xl", isDark ? "bg-white text-black" : "bg-black text-white")}
+                  >
+                    <span>Ajouter au panier</span>
+                    <span>{selectedItem.price.toFixed(2)} €</span>
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Review Modal */}
+        <AnimatePresence>
+          {reviewModalOrder && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+              onClick={() => setReviewModalOrder(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className={cn("w-full max-w-sm rounded-[32px] p-8 shadow-2xl", isDark ? "bg-gray-900" : "bg-white")}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="text-center mb-8">
+                  <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Star className="w-10 h-10 text-yellow-500 fill-yellow-500" />
+                  </div>
+                  <h2 className="text-2xl font-black mb-2">{t.rateOrder}</h2>
+                  <p className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>{t.howWasYourOrder}</p>
+                </div>
+
+                <div className="space-y-8 mb-8">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest mb-3 text-center">{t.rateRestaurant}</p>
+                    <div className="flex justify-center gap-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button 
+                          key={star} 
+                          onClick={() => setReviewData(prev => ({ ...prev, restaurantRating: star }))}
+                          className="transition-transform active:scale-90"
+                        >
+                          <Star className={cn("w-8 h-8", star <= reviewData.restaurantRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300 dark:text-gray-700")} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest mb-3 text-center">{t.rateDriver}</p>
+                    <div className="flex justify-center gap-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button 
+                          key={star} 
+                          onClick={() => setReviewData(prev => ({ ...prev, driverRating: star }))}
+                          className="transition-transform active:scale-90"
+                        >
+                          <Star className={cn("w-8 h-8", star <= reviewData.driverRating ? "fill-blue-400 text-blue-400" : "text-gray-300 dark:text-gray-700")} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={reviewData.comment}
+                    onChange={(e) => setReviewData(prev => ({ ...prev, comment: e.target.value }))}
+                    placeholder={t.commentPlaceholder}
+                    className={cn(
+                      "w-full p-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-black/5 min-h-[100px] resize-none",
+                      isDark ? "bg-gray-800 text-white placeholder-gray-500" : "bg-gray-100 text-black placeholder-gray-400"
+                    )}
+                  />
+                </div>
+
+                <button 
+                  onClick={() => setReviewModalOrder(null)}
+                  className={cn("w-full py-4 rounded-full font-black text-lg shadow-xl transition-transform active:scale-95", isDark ? "bg-white text-black" : "bg-black text-white")}
+                >
+                  {t.submitReview}
+                </button>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Package, MapPin, CheckCircle, Navigation } from 'lucide-react';
+import { LogOut, Package, MapPin, CheckCircle, Navigation, Phone, MessageSquare, Camera, Key } from 'lucide-react';
 import { cn, fetchWithTimeout } from '../lib/utils';
+import { db } from '../lib/firebase';
+import { collection, query, onSnapshot } from 'firebase/firestore';
 
 export default function DriverApp({ token, onLogout, user }: { token: string, onLogout: () => void, user: any }) {
   const [availableOrders, setAvailableOrders] = useState<any[]>([]);
@@ -25,8 +27,14 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000);
-    return () => clearInterval(interval);
+    
+    // Firestore Real-time Listener
+    const q = query(collection(db, 'orders'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      fetchOrders();
+    });
+
+    return () => unsubscribe();
   }, [token]);
 
   const acceptOrder = async (orderId: string) => {
@@ -69,6 +77,8 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
   const deliveringOrders = myOrders.filter(o => o.status === 'delivering');
   const completedOrders = myOrders.filter(o => o.status === 'delivered');
 
+  const dailyEarnings = completedOrders.reduce((sum, o) => sum + (o.total * 0.1), 0); // Mock 10% commission for driver
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {/* Header */}
@@ -82,9 +92,15 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
             <p className="text-sm text-gray-500">{user?.name || 'Livreur'}</p>
           </div>
         </div>
-        <button onClick={onLogout} className="flex items-center gap-2 text-red-500 font-medium hover:bg-red-50 px-4 py-2 rounded-lg transition-colors">
-          <LogOut className="w-4 h-4" /> Déconnexion
-        </button>
+        <div className="flex items-center gap-6">
+          <div className="text-right hidden sm:block">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gains du jour</p>
+            <p className="text-lg font-black text-green-600">{dailyEarnings.toFixed(2)} €</p>
+          </div>
+          <button onClick={onLogout} className="flex items-center gap-2 text-red-500 font-medium hover:bg-red-50 px-4 py-2 rounded-lg transition-colors">
+            <LogOut className="w-4 h-4" /> Déconnexion
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -164,35 +180,128 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
   );
 }
 
-function OrderCard({ order, onAction, actionText, actionColor, disabled = false }: { order: any, onAction: () => void, actionText: string, actionColor: string, disabled?: boolean }) {
+function OrderCard({ order, onAction, actionText, actionColor, disabled = false }: { order: any, onAction: (data?: any) => void, actionText: string, actionColor: string, disabled?: boolean, key?: any }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [clientCodeInput, setClientCodeInput] = useState('');
+  const [error, setError] = useState('');
+
+  const handleConfirm = () => {
+    if (order.status === 'delivering') {
+      if (clientCodeInput.toUpperCase() === order.clientCode) {
+        onAction();
+        setShowConfirm(false);
+      } else {
+        setError('Code incorrect');
+      }
+    } else {
+      onAction();
+    }
+  };
+
+  const launchRoute = () => {
+    const address = order.status === 'delivering' ? 'Paris, France' : 'Paris, France'; // Mock addresses
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
+  };
+
   return (
-    <div className="border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow bg-white">
-      <div className="flex justify-between items-start mb-3">
+    <div className="border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all bg-white">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <span className="text-xs font-bold text-gray-400">#{order.id.slice(-6).toUpperCase()}</span>
-          <p className="font-bold text-sm mt-1">{new Date(order.date || order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+          <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">#{order.id.slice(-6).toUpperCase()}</span>
+          <p className="font-black text-lg mt-0.5">{new Date(order.date || order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
         </div>
-        <span className="font-bold text-lg">{order.total.toFixed(2)} €</span>
+        <div className="text-right">
+          <p className="font-black text-lg">{order.total.toFixed(2)} €</p>
+          {order.status === 'delivering' && (
+             <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded uppercase">Retrait: {order.pickupCode}</span>
+          )}
+        </div>
       </div>
       
-      <div className="space-y-2 mb-4">
-        <div className="flex items-start gap-2 text-sm">
-          <MapPin className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
-          <span className="text-gray-600">Restaurant ID: {order.restaurantId.slice(-4)}</span>
+      <div className="space-y-3 mb-6">
+        <div className="flex items-start gap-3 text-sm">
+          <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <MapPin className="w-4 h-4 text-orange-500" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Restaurant</p>
+            <p className="font-bold text-gray-700">Restaurant ID: {order.restaurantId.slice(-4)}</p>
+          </div>
         </div>
-        <div className="flex items-start gap-2 text-sm">
-          <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-          <span className="text-gray-600">Client ID: {order.userId.slice(-4)}</span>
+        <div className="flex items-start gap-3 text-sm">
+          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <MapPin className="w-4 h-4 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Client</p>
+            <p className="font-bold text-gray-700">Client ID: {order.userId.slice(-4)}</p>
+          </div>
         </div>
       </div>
 
-      <button 
-        onClick={onAction}
-        disabled={disabled}
-        className={cn("w-full py-2 rounded-lg text-white font-bold text-sm transition-opacity hover:opacity-90", actionColor)}
-      >
-        {actionText}
-      </button>
+      {order.status === 'delivering' && !showConfirm && (
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button 
+            onClick={() => window.open('tel:0123456789')}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 text-gray-600 font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 transition-colors"
+          >
+            <Phone className="w-3 h-3" /> Appeler
+          </button>
+          <button 
+            onClick={() => {}}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 text-gray-600 font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 transition-colors"
+          >
+            <MessageSquare className="w-3 h-3" /> Chat
+          </button>
+        </div>
+      )}
+
+      {!disabled && (
+        <div className="space-y-2">
+          {order.status !== 'delivered' && (
+            <button 
+              onClick={launchRoute}
+              className="w-full py-3 rounded-xl bg-black text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors"
+            >
+              <Navigation className="w-4 h-4" /> Itinéraire
+            </button>
+          )}
+
+          {order.status === 'delivering' && showConfirm ? (
+            <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 animate-in fade-in slide-in-from-bottom-2">
+              <p className="text-[10px] font-black text-orange-800 uppercase tracking-widest mb-3 text-center">Confirmation Livraison</p>
+              <div className="flex gap-2 mb-3">
+                <div className="flex-1 relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Code Client" 
+                    value={clientCodeInput}
+                    onChange={e => { setClientCodeInput(e.target.value); setError(''); }}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border-none rounded-lg text-sm font-black focus:ring-2 focus:ring-orange-500/20 outline-none uppercase"
+                  />
+                </div>
+                <button className="p-2.5 bg-white rounded-lg text-orange-600 border border-orange-200 hover:bg-orange-100 transition-colors">
+                  <Camera className="w-5 h-5" />
+                </button>
+              </div>
+              {error && <p className="text-[10px] text-red-500 font-bold mb-3 text-center">{error}</p>}
+              <div className="flex gap-2">
+                <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Annuler</button>
+                <button onClick={handleConfirm} className="flex-[2] py-2 bg-orange-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-100">Confirmer</button>
+              </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => order.status === 'delivering' ? setShowConfirm(true) : onAction()}
+              disabled={disabled}
+              className={cn("w-full py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95", actionColor)}
+            >
+              {actionText}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

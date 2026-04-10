@@ -3,6 +3,7 @@ import restaurantRoutes from './restaurant.js';
 import orderRoutes from './order.js';
 import userRoutes from './user.js';
 import authRoutes from './auth.js';
+import adminRoutes from './admin.js';
 
 const router = Router();
 
@@ -11,6 +12,7 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/auth', authRoutes);
+router.use('/admin', adminRoutes);
 router.use('/restaurants', restaurantRoutes);
 router.use('/orders', orderRoutes);
 router.use('/users', userRoutes);

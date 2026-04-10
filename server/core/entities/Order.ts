@@ -7,6 +7,11 @@ export class Order {
     public total: number,
     public status: string,
     public createdAt: Date,
-    public driverId?: string
+    public driverId?: string,
+    public pickupCode?: string,
+    public clientCode?: string,
+    public deliveryPhoto?: string,
+    public prepTimeExtension?: number,
+    public driverEta?: Date
   ) {}
 }

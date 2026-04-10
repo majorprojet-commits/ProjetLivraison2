@@ -36,10 +36,17 @@ export class OrderCtrl {
 
   getForRestaurant = async (req: AuthRequest, res: Response) => {
     try {
+      const restaurantId = req.params.restaurantId;
+      
+      // RBAC: Admin can see everything, Restaurant owner only their own
+      if (req.user.role === 'restaurant' && req.user.restaurantId !== restaurantId) {
+        return res.status(403).json({ error: 'Forbidden: Access restricted to your own restaurant' });
+      }
+      
       if (req.user.role !== 'restaurant' && req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Forbidden' });
       }
-      const restaurantId = req.params.restaurantId;
+
       const data = await this.getRestaurantOrders.execute(restaurantId);
       res.json(data.map(OrderVM.format));
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
@@ -51,8 +58,8 @@ export class OrderCtrl {
         return res.status(403).json({ error: 'Forbidden' });
       }
       const orderId = req.params.id;
-      const { status } = req.body;
-      const data = await this.updateOrderStatus.execute(orderId, status);
+      const { status, ...extraData } = req.body;
+      const data = await this.updateOrderStatus.execute(orderId, status, extraData);
       if (!data) return res.status(404).json({ error: 'Order not found' });
       res.json(OrderVM.format(data));
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }

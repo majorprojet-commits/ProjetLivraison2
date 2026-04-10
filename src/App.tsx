@@ -123,12 +123,12 @@ export default function App() {
               element={
                 !token ? (
                   <Navigate to="/" replace />
-                ) : user?.role === 'admin' ? (
+                ) : (user?.role === 'admin' || user?.role === 'restaurant') ? (
                   <AdminApp token={token} onLogout={handleLogout} user={user} />
                 ) : (
                   <div className="p-8 text-center">
                     <h1 className="text-2xl font-bold text-red-500">Accès Refusé</h1>
-                    <p>Vous n'êtes pas administrateur.</p>
+                    <p>Vous n'avez pas les permissions pour accéder au Dashboard.</p>
                     <a href="/" className="text-blue-500 underline mt-4 block">Retour à l'accueil</a>
                   </div>
                 )

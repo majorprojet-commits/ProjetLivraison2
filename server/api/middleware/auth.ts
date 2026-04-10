@@ -2,7 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    id: string;
+    role: 'client' | 'restaurant' | 'driver' | 'admin';
+    name: string;
+    restaurantId?: string;
+  };
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -20,10 +25,20 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super-secret-key') as any;
     req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
   }
+};
+
+export const roleMiddleware = (roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+    next();
+  };
 };
