@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, Package, CheckCircle, Clock, ChefHat } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, fetchWithTimeout } from '../lib/utils';
 
 export default function RestaurantApp({ token, onLogout, user }: { token: string, onLogout: () => void, user: any }) {
   const [orders, setOrders] = useState<any[]>([]);
@@ -12,7 +12,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`/api/orders/restaurant/${restaurantId}`, {
+        const res = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {

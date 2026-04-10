@@ -57,7 +57,10 @@ export const connectDB = async () => {
       console.log('🚀 Using In-Memory MongoDB');
     }
 
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+    });
     console.log('✅ MongoDB Connected');
 
     // Seed Data

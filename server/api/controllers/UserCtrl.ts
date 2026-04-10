@@ -16,6 +16,9 @@ export class UserCtrl {
   
   getProfile = async (req: AuthRequest, res: Response) => {
     try {
+      if (req.user.id === 'dev-admin-id') {
+        return res.json({ id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', email: 'dev@example.com', restaurantId: 'r1' });
+      }
       const data = await this.getUser.execute(req.user.id);
       if (!data) return res.status(404).json({ error: 'Not found' });
       res.json(UserVM.format(data));

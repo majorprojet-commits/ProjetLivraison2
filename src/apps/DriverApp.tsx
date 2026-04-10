@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, Package, MapPin, CheckCircle, Navigation } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, fetchWithTimeout } from '../lib/utils';
 
 export default function DriverApp({ token, onLogout, user }: { token: string, onLogout: () => void, user: any }) {
   const [availableOrders, setAvailableOrders] = useState<any[]>([]);
@@ -10,8 +10,8 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
   const fetchOrders = async () => {
     try {
       const [availableRes, myRes] = await Promise.all([
-        fetch('/api/orders/available', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/orders/driver', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetchWithTimeout('/api/orders/available', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetchWithTimeout('/api/orders/driver', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       
       if (availableRes.ok) setAvailableOrders(await availableRes.json());

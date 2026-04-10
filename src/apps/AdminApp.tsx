@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, Users, Shield, Store, Navigation } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, fetchWithTimeout } from '../lib/utils';
 
 export default function AdminApp({ token, onLogout, user }: { token: string, onLogout: () => void, user: any }) {
   const [users, setUsers] = useState<any[]>([]);
@@ -8,7 +8,7 @@ export default function AdminApp({ token, onLogout, user }: { token: string, onL
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users', {
+      const res = await fetchWithTimeout('/api/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

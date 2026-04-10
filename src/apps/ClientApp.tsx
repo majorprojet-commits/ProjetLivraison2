@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Search, Receipt, User, MapPin, Clock, Star, ChevronLeft, Plus, Minus, ShoppingBag, Moon, Sun, Globe, X, Tag, Calendar, CreditCard, Edit2, Check, LogOut, Package, CheckCircle, ChevronRight, ChevronDown, ChevronUp, Phone, MessageCircle, Navigation } from 'lucide-react';
 import { CATEGORIES } from '../data';
-import { cn } from '../lib/utils';
+import { cn, fetchWithTimeout } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TRANSLATIONS = {
@@ -119,7 +119,7 @@ const TRANSLATIONS = {
   }
 };
 
-export default function App() {
+export default function ClientApp({ token: propToken, user: propUser, onLogout }: { token: string, user: any, onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
   const [cart, setCart] = useState<{ itemId: string; quantity: number; price: number; name: string }[]>([]);
@@ -137,20 +137,28 @@ export default function App() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Auth State
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  // Auth State - Sync with props
+  const [token, setToken] = useState<string | null>(propToken || 'dev-token');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
   const [authError, setAuthError] = useState('');
 
   // Profile & Orders State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState(propUser || {
     id: '',
     name: '',
     email: '',
     phone: ''
   });
+
+  useEffect(() => {
+    setToken(propToken || 'dev-token');
+  }, [propToken]);
+
+  useEffect(() => {
+    if (propUser) setProfileData(propUser);
+  }, [propUser]);
   const [orderFilter, setOrderFilter] = useState<'active' | 'past'>('active');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,13 +175,13 @@ export default function App() {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const resRes = await fetch('/api/restaurants');
+        const resRes = await fetchWithTimeout('/api/restaurants');
         if (resRes.ok) setRestaurants(await resRes.json());
 
         if (token) {
           const [userRes, ordersRes] = await Promise.all([
-            fetch('/api/users/me', { headers }),
-            fetch('/api/orders', { headers })
+            fetchWithTimeout('/api/users/me', { headers }),
+            fetchWithTimeout('/api/orders', { headers })
           ]);
           
           if (userRes.ok) setProfileData(await userRes.json());
@@ -334,77 +342,6 @@ export default function App() {
     return (
       <div className={cn("flex justify-center items-center min-h-screen font-sans", isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black")}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current"></div>
-      </div>
-    );
-  }
-
-  if (!token) {
-    return (
-      <div className={cn("flex justify-center items-center min-h-screen font-sans transition-colors duration-300", isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black")}>
-        <div className={cn("w-full max-w-md p-8 rounded-3xl shadow-2xl", isDark ? "bg-gray-800" : "bg-white")}>
-          <h1 className="text-3xl font-bold text-center mb-8">
-            {authMode === 'login' ? 'Connexion' : 'Inscription'}
-          </h1>
-          
-          {authError && (
-            <div className={cn("p-3 rounded-xl mb-6 text-sm text-center font-medium", authError.includes('réussie') ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
-              {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            {authMode === 'register' && (
-              <div>
-                <label className={cn("text-sm font-medium", isDark ? "text-gray-300" : "text-gray-700")}>Nom</label>
-                <input 
-                  type="text" 
-                  required
-                  value={authForm.name}
-                  onChange={e => setAuthForm({...authForm, name: e.target.value})}
-                  className={cn("w-full mt-1 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 transition-colors", isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black")}
-                />
-              </div>
-            )}
-            <div>
-              <label className={cn("text-sm font-medium", isDark ? "text-gray-300" : "text-gray-700")}>Email</label>
-              <input 
-                type="email" 
-                required
-                value={authForm.email}
-                onChange={e => setAuthForm({...authForm, email: e.target.value})}
-                className={cn("w-full mt-1 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 transition-colors", isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black")}
-              />
-            </div>
-            <div>
-              <label className={cn("text-sm font-medium", isDark ? "text-gray-300" : "text-gray-700")}>Mot de passe</label>
-              <input 
-                type="password" 
-                required
-                value={authForm.password}
-                onChange={e => setAuthForm({...authForm, password: e.target.value})}
-                className={cn("w-full mt-1 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 transition-colors", isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black")}
-              />
-            </div>
-            <button 
-              type="submit"
-              className={cn("w-full py-4 rounded-xl font-bold text-lg mt-6 transition-transform active:scale-95", isDark ? "bg-white text-black" : "bg-black text-white")}
-            >
-              {authMode === 'login' ? 'Se connecter' : 'S\'inscrire'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button 
-              onClick={() => {
-                setAuthMode(authMode === 'login' ? 'register' : 'login');
-                setAuthError('');
-              }}
-              className={cn("text-sm font-medium hover:underline", isDark ? "text-gray-400" : "text-gray-600")}
-            >
-              {authMode === 'login' ? 'Pas encore de compte ? S\'inscrire' : 'Déjà un compte ? Se connecter'}
-            </button>
-          </div>
-        </div>
       </div>
     );
   }

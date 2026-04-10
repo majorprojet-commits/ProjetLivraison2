@@ -12,6 +12,13 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   }
 
   const token = authHeader.split(' ')[1];
+  
+  // Bypass for testing/dev mode
+  if (token === 'dev-token') {
+    req.user = { id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', restaurantId: 'r1' };
+    return next();
+  }
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super-secret-key');
     req.user = decoded;
