@@ -14,6 +14,18 @@ export async function fetchWithTimeout(resource: string, options: any = {}, time
       signal: controller.signal
     });
     clearTimeout(id);
+    
+    // Add a helper to safely parse JSON
+    (response as any).safeJson = async () => {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return response.json();
+      }
+      const text = await response.text();
+      console.error(`Expected JSON but got ${contentType}: ${text.substring(0, 100)}...`);
+      throw new Error(`Invalid JSON response from ${resource}`);
+    };
+
     return response;
   } catch (error) {
     clearTimeout(id);

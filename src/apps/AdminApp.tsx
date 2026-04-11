@@ -53,21 +53,21 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
           fetchWithTimeout('/api/admin/disputes', { headers })
         ]);
 
-        if (uRes.ok) setUsers(await uRes.json());
-        if (rRes.ok) setRestaurants(await rRes.json());
-        if (sRes.ok) dispatch(setAnalytics(await sRes.json()));
-        if (zRes.ok) setZones(await zRes.json());
-        if (dRes.ok) setDisputes(await dRes.json());
+        if (uRes.ok) setUsers(await (uRes as any).safeJson());
+        if (rRes.ok) setRestaurants(await (rRes as any).safeJson());
+        if (sRes.ok) dispatch(setAnalytics(await (sRes as any).safeJson()));
+        if (zRes.ok) setZones(await (zRes as any).safeJson());
+        if (dRes.ok) setDisputes(await (dRes as any).safeJson());
       } else if (restaurantId) {
         // Restaurant Owner Data
         const menuRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/menu`, { headers });
-        if (menuRes.ok) dispatch(setMenu(await menuRes.json()));
+        if (menuRes.ok) dispatch(setMenu(await (menuRes as any).safeJson()));
 
         const reviewsRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/reviews`, { headers });
-        if (reviewsRes.ok) dispatch(setReviews(await reviewsRes.json()));
+        if (reviewsRes.ok) dispatch(setReviews(await (reviewsRes as any).safeJson()));
 
         const ordersRes = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, { headers });
-        if (ordersRes.ok) dispatch(setOrders(await ordersRes.json()));
+        if (ordersRes.ok) dispatch(setOrders(await (ordersRes as any).safeJson()));
 
         // Restaurant Analytics Mock
         dispatch(setAnalytics({

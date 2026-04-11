@@ -15,8 +15,8 @@ const addDish = new AddDishToMenu(repo);
 const updateDish = new UpdateDishAvailability(repo);
 const ctrl = new RestaurantCtrl(getRestaurants, getMenu, addDish, updateDish);
 
-router.get('/', authMiddleware, roleMiddleware(['admin']), ctrl.getAll);
-router.get('/:id/menu', authMiddleware, ctrl.getMenu);
+router.get('/', ctrl.getAll);
+router.get('/:id/menu', ctrl.getMenu);
 router.post('/:id/menu', authMiddleware, roleMiddleware(['restaurant', 'admin']), ctrl.addDish);
 router.put('/:id/menu/:dishId', authMiddleware, roleMiddleware(['restaurant', 'admin']), ctrl.updateDishAvailability);
 

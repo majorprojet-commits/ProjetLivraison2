@@ -250,7 +250,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const resRes = await fetchWithTimeout('/api/restaurants');
-        if (resRes.ok) setRestaurants(await resRes.json());
+        if (resRes.ok) setRestaurants(await (resRes as any).safeJson());
 
         if (token) {
           const [userRes, ordersRes] = await Promise.all([
@@ -258,8 +258,8 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
             fetchWithTimeout('/api/orders', { headers })
           ]);
           
-          if (userRes.ok) setProfileData(await userRes.json());
-          if (ordersRes.ok) setOrders(await ordersRes.json());
+          if (userRes.ok) setProfileData(await (userRes as any).safeJson());
+          if (ordersRes.ok) setOrders(await (ordersRes as any).safeJson());
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);

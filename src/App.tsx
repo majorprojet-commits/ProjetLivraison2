@@ -30,7 +30,7 @@ export default function App() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
-          setUser(await res.json());
+          setUser(await (res as any).safeJson());
         } else {
           // If real token fails, fallback to dev mode for testing
           setToken('dev-token');

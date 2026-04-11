@@ -43,14 +43,14 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
         // Initial Fetch Orders
         const ordersRes = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, { headers });
         if (ordersRes.ok) {
-          const newOrders = await ordersRes.json();
+          const newOrders = await (ordersRes as any).safeJson();
           dispatch(setOrders(newOrders));
         }
 
         // Fetch Menu
         const menuRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/menu`, { headers });
         if (menuRes.ok) {
-          dispatch(setMenu(await menuRes.json()));
+          dispatch(setMenu(await (menuRes as any).safeJson()));
         }
       } catch (error) {
         console.error("Failed to fetch restaurant data:", error);
