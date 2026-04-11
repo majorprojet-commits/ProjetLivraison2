@@ -50,22 +50,39 @@ const SEED_RESTAURANTS = [
 let mongoServer: MongoMemoryServer | null = null;
 
 export const connectDB = async () => {
+  let uri = process.env.MONGODB_URI;
+  const isPlaceholder = uri && (uri.includes('<db_password>') || uri.includes('TODO'));
+
   try {
-    let uri = process.env.MONGODB_URI;
-    
-    // Use in-memory MongoDB if no URI is provided or if it's the default localhost one
-    if (!uri || uri.includes('localhost')) {
+    if (!uri || uri.includes('localhost') || isPlaceholder) {
+      console.log('⚠️ MONGODB_URI is missing or contains placeholder. Using In-Memory MongoDB.');
       mongoServer = await MongoMemoryServer.create();
       uri = mongoServer.getUri();
-      console.log('🚀 Using In-Memory MongoDB');
     }
 
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
+      connectTimeoutMS: 5000,
     });
     console.log('✅ MongoDB Connected');
+  } catch (error) {
+    console.error('❌ MongoDB Connection Failed:', error);
+    
+    // Fallback if not already using memory server
+    if (!mongoServer) {
+      try {
+        console.log('🔄 Attempting fallback to In-Memory MongoDB...');
+        mongoServer = await MongoMemoryServer.create();
+        const fallbackUri = mongoServer.getUri();
+        await mongoose.connect(fallbackUri);
+        console.log('✅ Fallback MongoDB Connected');
+      } catch (fallbackError) {
+        console.error('❌ Fallback MongoDB also failed:', fallbackError);
+      }
+    }
+  }
 
+  try {
     // Seed Data
     const count = await RestaurantModel.countDocuments();
     if (count === 0) {
@@ -73,7 +90,7 @@ export const connectDB = async () => {
       await RestaurantModel.insertMany(SEED_RESTAURANTS);
       console.log('✅ Database seeded');
     }
-  } catch (error) {
-    console.error('❌ MongoDB Error:', error);
+  } catch (seedError) {
+    console.error('❌ Seeding Error:', seedError);
   }
 };
