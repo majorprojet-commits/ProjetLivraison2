@@ -8,6 +8,7 @@ const schema = new mongoose.Schema({
   deliveryTime: String,
   deliveryFee: Number,
   menu: Array,
+  type: { type: String, enum: ['restaurant', 'clothing', 'supermarket', 'pharmacy', 'other'], default: 'restaurant' },
   status: { type: String, enum: ['active', 'suspended', 'pending'], default: 'active' },
   ownerId: { type: String }
 }, { timestamps: true });

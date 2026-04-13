@@ -7,6 +7,7 @@ export class Restaurant {
     public image: string,
     public deliveryTime: string,
     public deliveryFee: number,
-    public menu: any[]
+    public menu: any[],
+    public type: 'restaurant' | 'clothing' | 'supermarket' | 'pharmacy' | 'other' = 'restaurant'
   ) {}
 }

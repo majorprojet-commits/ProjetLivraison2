@@ -5,14 +5,17 @@ import { RestaurantModel } from '../models/Restaurant.js';
 export class MongoRestaurantRepo implements IRestaurantRepo {
   async findAll(): Promise<Restaurant[]> {
     const docs = await RestaurantModel.find();
-    return docs.map(d => new Restaurant(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[]));
+    return docs.map(d => new Restaurant(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[], (d as any).type || 'restaurant'));
   }
   async findById(id: string): Promise<Restaurant | null> {
     const d = await RestaurantModel.findById(id);
     if (!d) return null;
-    return new Restaurant(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[]);
+    return new Restaurant(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[], (d as any).type || 'restaurant');
   }
   async updateMenu(id: string, menu: any[]): Promise<void> {
     await RestaurantModel.findByIdAndUpdate(id, { menu });
+  }
+  async updateSettings(id: string, settings: any): Promise<void> {
+    await RestaurantModel.findByIdAndUpdate(id, settings);
   }
 }

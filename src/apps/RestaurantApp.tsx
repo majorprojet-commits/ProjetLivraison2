@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, setOrders, updateOrderStatus, setMenu, toggleRushMode, setAnalytics, setReviews } from '../store';
+import { STORE_TYPES } from '../data';
 import { cn, fetchWithTimeout } from '../lib/utils';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -18,14 +19,29 @@ import { format, subDays, startOfDay } from 'date-fns';
 import { db } from '../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
+const getTerminology = (type: string) => {
+  switch (type) {
+    case 'clothing':
+      return { menu: 'Catalogue', dish: 'Article', dishes: 'Articles', cuisine: 'Ventes', addDish: 'Ajouter un Article' };
+    case 'supermarket':
+      return { menu: 'Rayons', dish: 'Produit', dishes: 'Produits', cuisine: 'Commandes', addDish: 'Ajouter un Produit' };
+    case 'pharmacy':
+      return { menu: 'Produits', dish: 'Médicament', dishes: 'Médicaments', cuisine: 'Ordonnances', addDish: 'Ajouter un Produit' };
+    default:
+      return { menu: 'Ma Carte', dish: 'Plat', dishes: 'Plats', cuisine: 'Cuisine', addDish: 'Ajouter un Plat' };
+  }
+};
+
 export default function RestaurantApp({ token, onLogout, user }: { token: string, onLogout: () => void, user: any }) {
   const dispatch = useDispatch();
   const { orders, settings, menu } = useSelector((state: RootState) => state.restaurant);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('operations');
+  const [restaurantData, setRestaurantData] = useState<any>(null);
   const notificationSound = useRef<HTMLAudioElement | null>(null);
 
   const restaurantId = user?.restaurantId;
+  const term = getTerminology(restaurantData?.type || 'restaurant');
 
   useEffect(() => {
     notificationSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -40,6 +56,14 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
         
+        // Fetch Restaurant Details
+        const restaurantsRes = await fetchWithTimeout('/api/restaurants');
+        if (restaurantsRes.ok) {
+          const allRestaurants = await (restaurantsRes as any).safeJson();
+          const current = allRestaurants.find((r: any) => r.id === restaurantId);
+          if (current) setRestaurantData(current);
+        }
+
         // Initial Fetch Orders
         const ordersRes = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, { headers });
         if (ordersRes.ok) {
@@ -130,6 +154,52 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
     }
   };
 
+  const handleUpdateDish = async (dishId: string, dishData: any) => {
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${dishId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(dishData)
+      });
+      if (res.ok) {
+        const updatedDish = await (res as any).safeJson();
+        dispatch(setMenu(menu.map(item => item.id === dishId ? updatedDish : item)));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteDish = async (dishId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce plat ?')) return;
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${dishId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        dispatch(setMenu(menu.filter(item => item.id !== dishId)));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdateSettings = async (settings: any) => {
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(settings)
+      });
+      if (res.ok) {
+        setRestaurantData((prev: any) => ({ ...prev, ...settings }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -189,7 +259,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
             onClick={() => setActiveTab('operations')}
             className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'operations' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
           >
-            Cuisine
+            {term.cuisine}
           </button>
           <button 
             onClick={() => setActiveTab('inventory')}
@@ -201,7 +271,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
             onClick={() => setActiveTab('menu')}
             className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'menu' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
           >
-            Ma Carte
+            {term.menu}
           </button>
           <button 
             onClick={() => setActiveTab('dashboard')}
@@ -209,12 +279,19 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
           >
             Stats
           </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'settings' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
 
         {activeTab === 'operations' && <OperationsView orders={orders} onUpdateStatus={handleUpdateStatus} onAddTime={handleAddTime} />}
-        {activeTab === 'menu' && <MenuView menu={menu} onAddDish={handleAddDish} />}
+        {activeTab === 'menu' && <MenuView menu={menu} onAddDish={handleAddDish} onUpdateDish={handleUpdateDish} onDeleteDish={handleDeleteDish} term={term} />}
         {activeTab === 'inventory' && <QuickInventory menu={menu} token={token} restaurantId={restaurantId} />}
         {activeTab === 'dashboard' && <DashboardView analytics={{ dailyRevenue: 0, weeklyRevenue: 0, cancellationRate: 0, revenueHistory: [], topDishes: [] }} />}
+        {activeTab === 'settings' && <SettingsView restaurant={restaurantData} onUpdate={handleUpdateSettings} />}
       </main>
     </div>
   );
@@ -542,9 +619,10 @@ function StatCard({ label, value, icon: Icon, trend, color }: any) {
   );
 }
 
-function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => void }) {
+function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term }: { menu: any[], onAddDish: (dish: any) => void, onUpdateDish: (id: string, dish: any) => void, onDeleteDish: (id: string) => void, term: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newDish, setNewDish] = useState({
+  const [editingDishId, setEditingDishId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
     name: '',
     price: '',
     description: '',
@@ -554,12 +632,38 @@ function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddDish({
-      ...newDish,
-      price: parseFloat(newDish.price)
-    });
+    const dishData = {
+      ...formData,
+      price: parseFloat(formData.price)
+    };
+
+    if (editingDishId) {
+      onUpdateDish(editingDishId, dishData);
+    } else {
+      onAddDish(dishData);
+    }
+
     setIsModalOpen(false);
-    setNewDish({ name: '', price: '', description: '', category: 'Plat', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80' });
+    setEditingDishId(null);
+    setFormData({ name: '', price: '', description: '', category: 'Plat', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80' });
+  };
+
+  const openEditModal = (dish: any) => {
+    setEditingDishId(dish.id);
+    setFormData({
+      name: dish.name,
+      price: dish.price.toString(),
+      description: dish.description,
+      category: dish.category || term.dish,
+      image: dish.image
+    });
+    setIsModalOpen(true);
+  };
+
+  const openAddModal = () => {
+    setEditingDishId(null);
+    setFormData({ name: '', price: '', description: '', category: term.dish, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80' });
+    setIsModalOpen(true);
   };
 
   return (
@@ -567,12 +671,12 @@ function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-black">Gestion de la Carte</h3>
+            <h3 className="text-xl font-black">{term.menu}</h3>
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={openAddModal}
               className="bg-black text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-gray-200 active:scale-95 transition-transform"
             >
-              <Plus className="w-5 h-5" /> Ajouter un Plat
+              <Plus className="w-5 h-5" /> {term.addDish}
             </button>
           </div>
 
@@ -582,10 +686,16 @@ function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => 
                 <div className="h-48 relative">
                   <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute top-4 right-4 flex gap-2">
-                    <button className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-blue-600 transition-colors">
+                    <button 
+                      onClick={() => openEditModal(item)}
+                      className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    >
                       <Edit3 className="w-4 h-4" />
                     </button>
-                    <button className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-red-600 transition-colors">
+                    <button 
+                      onClick={() => onDeleteDish(item.id)}
+                      className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-red-600 transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -653,21 +763,21 @@ function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => 
         </div>
       </div>
 
-      {/* Add Dish Modal */}
+      {/* Add/Edit Dish Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
-            <h3 className="text-2xl font-black mb-6">Ajouter un nouveau plat</h3>
+            <h3 className="text-2xl font-black mb-6">{editingDishId ? `Modifier le ${term.dish.toLowerCase()}` : term.addDish}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Nom du plat</label>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Nom du {term.dish.toLowerCase()}</label>
                 <input 
                   required
                   type="text" 
-                  value={newDish.name}
-                  onChange={e => setNewDish({...newDish, name: e.target.value})}
+                  value={formData.name}
+                  onChange={e => setFormData({...formData, name: e.target.value})}
                   className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
-                  placeholder="ex: Burger Deluxe"
+                  placeholder={`ex: ${term.dish === 'Plat' ? 'Burger Deluxe' : term.dish === 'Article' ? 'T-shirt Coton' : 'Produit'}`}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -677,8 +787,8 @@ function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => 
                     required
                     type="number" 
                     step="0.01"
-                    value={newDish.price}
-                    onChange={e => setNewDish({...newDish, price: e.target.value})}
+                    value={formData.price}
+                    onChange={e => setFormData({...formData, price: e.target.value})}
                     className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
                     placeholder="12.50"
                   />
@@ -686,8 +796,8 @@ function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => 
                 <div>
                   <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Catégorie</label>
                   <select 
-                    value={newDish.category}
-                    onChange={e => setNewDish({...newDish, category: e.target.value})}
+                    value={formData.category}
+                    onChange={e => setFormData({...formData, category: e.target.value})}
                     className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
                   >
                     <option>Plat</option>
@@ -701,15 +811,27 @@ function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => 
                 <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Description</label>
                 <textarea 
                   required
-                  value={newDish.description}
-                  onChange={e => setNewDish({...newDish, description: e.target.value})}
+                  value={formData.description}
+                  onChange={e => setFormData({...formData, description: e.target.value})}
                   className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20 h-24 resize-none"
                   placeholder="Description du plat..."
                 />
               </div>
+              <div>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">URL de l'image</label>
+                <input 
+                  type="url" 
+                  value={formData.image}
+                  onChange={e => setFormData({...formData, image: e.target.value})}
+                  className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+                  placeholder="https://..."
+                />
+              </div>
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-500 font-black uppercase tracking-widest text-xs">Annuler</button>
-                <button type="submit" className="flex-[2] py-4 rounded-2xl bg-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-100">Ajouter</button>
+                <button type="submit" className="flex-[2] py-4 rounded-2xl bg-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-100">
+                  {editingDishId ? 'Enregistrer' : 'Ajouter'}
+                </button>
               </div>
             </form>
           </div>
@@ -724,7 +846,7 @@ function QuickInventory({ menu, token, restaurantId }: { menu: any[], token: str
 
   const toggleAvailability = async (itemId: string, current: boolean) => {
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${itemId}`, {
+      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${itemId}/availability`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ available: !current })
@@ -960,6 +1082,117 @@ function PromosView() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function SettingsView({ restaurant, onUpdate }: { restaurant: any, onUpdate: (settings: any) => void }) {
+  const [formData, setFormData] = useState({
+    name: restaurant?.name || '',
+    type: restaurant?.type || 'restaurant',
+    image: restaurant?.image || '',
+    deliveryTime: restaurant?.deliveryTime || '',
+    deliveryFee: restaurant?.deliveryFee || 0
+  });
+
+  useEffect(() => {
+    if (restaurant) {
+      setFormData({
+        name: restaurant.name,
+        type: restaurant.type || 'restaurant',
+        image: restaurant.image,
+        deliveryTime: restaurant.deliveryTime,
+        deliveryFee: restaurant.deliveryFee
+      });
+    }
+  }, [restaurant]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdate(formData);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-[40px] p-10 border border-gray-100 shadow-sm">
+        <h3 className="text-2xl font-black mb-8">Paramètres de l'établissement</h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Nom de l'établissement</label>
+              <input 
+                type="text"
+                value={formData.name}
+                onChange={e => setFormData({...formData, name: e.target.value})}
+                className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Type d'établissement</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {STORE_TYPES.map(type => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setFormData({...formData, type: type.id as any})}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all",
+                      formData.type === type.id 
+                        ? "border-orange-500 bg-orange-50/50" 
+                        : "border-gray-100 hover:border-gray-200"
+                    )}
+                  >
+                    <span className="text-2xl">{type.icon === 'Utensils' ? '🍴' : type.icon === 'Shirt' ? '👕' : type.icon === 'ShoppingBasket' ? '🛒' : type.icon === 'PlusSquare' ? '🏥' : '🏪'}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-600">{type.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Temps de livraison</label>
+                <input 
+                  type="text"
+                  value={formData.deliveryTime}
+                  onChange={e => setFormData({...formData, deliveryTime: e.target.value})}
+                  placeholder="20-30 min"
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Frais de livraison (€)</label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  value={formData.deliveryFee}
+                  onChange={e => setFormData({...formData, deliveryFee: parseFloat(e.target.value)})}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">URL de l'image de couverture</label>
+              <input 
+                type="url"
+                value={formData.image}
+                onChange={e => setFormData({...formData, image: e.target.value})}
+                className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit"
+            className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-gray-200 hover:bg-gray-900 transition-all active:scale-[0.98]"
+          >
+            Enregistrer les modifications
+          </button>
+        </form>
       </div>
     </div>
   );

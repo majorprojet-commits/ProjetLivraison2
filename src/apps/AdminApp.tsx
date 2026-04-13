@@ -370,7 +370,8 @@ function RestaurantsManagement({ restaurants, onUpdateStatus }: any) {
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50 text-left">
-              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Restaurant</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Établissement</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Type</th>
               <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Propriétaire</th>
               <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Statut</th>
               <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Actions</th>
@@ -381,9 +382,16 @@ function RestaurantsManagement({ restaurants, onUpdateStatus }: any) {
               <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-8 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">🏪</div>
+                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                      {r.type === 'clothing' ? '👕' : r.type === 'supermarket' ? '🛒' : r.type === 'pharmacy' ? '🏥' : '🏪'}
+                    </div>
                     <span className="font-black text-sm">{r.name}</span>
                   </div>
+                </td>
+                <td className="px-8 py-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+                    {r.type || 'restaurant'}
+                  </span>
                 </td>
                 <td className="px-8 py-4 text-sm text-gray-500 font-medium">{r.ownerEmail || 'N/A'}</td>
                 <td className="px-8 py-4">
@@ -759,6 +767,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: any) {
 function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token: string, restaurantId: string, onRefresh: () => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingDishId, setEditingDishId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -773,10 +782,13 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    console.log("Submitting dish for restaurantId:", restaurantId);
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/menu`, {
-        method: 'POST',
+      const url = editingDishId 
+        ? `/api/restaurants/${restaurantId}/menu/${editingDishId}`
+        : `/api/restaurants/${restaurantId}/menu`;
+      
+      const res = await fetch(url, {
+        method: editingDishId ? 'PUT' : 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -787,9 +799,9 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
         })
       });
 
-      console.log("Response status:", res.status);
       if (res.ok) {
         setIsModalOpen(false);
+        setEditingDishId(null);
         setFormData({
           name: '',
           description: '',
@@ -801,15 +813,50 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
         onRefresh();
       } else {
         const data = await res.json();
-        console.error("Add dish failed:", data);
-        setError(data.error || "Une erreur est survenue lors de l'ajout du plat.");
+        setError(data.error || "Une erreur est survenue.");
       }
     } catch (error) {
-      console.error("Failed to add dish (exception):", error);
       setError("Erreur de connexion au serveur.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDelete = async (dishId: string) => {
+    if (!window.confirm('Supprimer ce plat ?')) return;
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${dishId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) onRefresh();
+    } catch (e) { console.error(e); }
+  };
+
+  const openEditModal = (dish: any) => {
+    setEditingDishId(dish.id);
+    setFormData({
+      name: dish.name,
+      description: dish.description,
+      price: dish.price.toString(),
+      category: dish.category || 'Plat',
+      image: dish.image,
+      available: dish.available
+    });
+    setIsModalOpen(true);
+  };
+
+  const openAddModal = () => {
+    setEditingDishId(null);
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      category: 'Plat',
+      image: '',
+      available: true
+    });
+    setIsModalOpen(true);
   };
 
   return (
@@ -817,7 +864,7 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-black">Ma Carte</h3>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openAddModal}
           className="bg-black text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-gray-200 active:scale-95 transition-transform"
         >
           <Plus className="w-5 h-5" /> Ajouter un Plat
@@ -830,10 +877,16 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
             <div className="h-48 relative">
               <img src={item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute top-4 right-4 flex gap-2">
-                <button className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-blue-600 transition-colors">
+                <button 
+                  onClick={() => openEditModal(item)}
+                  className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-blue-600 transition-colors"
+                >
                   <Edit3 className="w-4 h-4" />
                 </button>
-                <button className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-red-600 transition-colors">
+                <button 
+                  onClick={() => handleDelete(item.id)}
+                  className="p-2 bg-white/90 backdrop-blur-md rounded-xl shadow-sm text-gray-600 hover:text-red-600 transition-colors"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -865,7 +918,7 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl my-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black">Ajouter un nouveau plat</h3>
+              <h3 className="text-2xl font-black">{editingDishId ? 'Modifier le plat' : 'Ajouter un nouveau plat'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <XCircle className="w-6 h-6 text-gray-400" />
               </button>
@@ -976,7 +1029,7 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
                   disabled={isSubmitting}
                   className="flex-[2] py-4 rounded-2xl bg-black text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-gray-200 hover:bg-gray-900 transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? "Ajout en cours..." : "Ajouter le plat"}
+                  {isSubmitting ? "Envoi..." : (editingDishId ? "Enregistrer" : "Ajouter le plat")}
                 </button>
               </div>
             </form>

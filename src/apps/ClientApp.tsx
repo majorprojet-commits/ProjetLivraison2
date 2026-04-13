@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Search, Receipt, User, MapPin, Clock, Star, Heart, ChevronLeft, Plus, Minus, ShoppingBag, Moon, Sun, Globe, X, Tag, Calendar, CreditCard, Edit2, Check, LogOut, Package, CheckCircle, ChevronRight, ChevronDown, ChevronUp, Phone, MessageCircle, Navigation } from 'lucide-react';
-import { CATEGORIES } from '../data';
+import * as lucideIcons from 'lucide-react';
+import { Home, Search, Receipt, User, MapPin, Clock, Star, Heart, ChevronLeft, Plus, Minus, ShoppingBag, Moon, Sun, Globe, X, Tag, Calendar, CreditCard, Edit2, Check, LogOut, Package, CheckCircle, ChevronRight, ChevronDown, ChevronUp, Phone, MessageCircle, Navigation, AlertTriangle, Utensils, Shirt, ShoppingBasket, PlusSquare, Store } from 'lucide-react';
+import { CATEGORIES, STORE_TYPES } from '../data';
 import { cn, fetchWithTimeout } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
@@ -196,6 +197,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Auth State - Sync with props
   const [token, setToken] = useState<string | null>(propToken || 'dev-token');
@@ -224,6 +226,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
   const [searchQuery, setSearchQuery] = useState('');
   const [trackingOrder, setTrackingOrder] = useState<any | null>(null);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedStoreType, setSelectedStoreType] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'rating' | 'time' | 'default'>('default');
   const [priceFilter, setPriceFilter] = useState<number | null>(null);
   const [dietaryFilter, setDietaryFilter] = useState<string | null>(null);
@@ -243,14 +246,22 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
 
   // Fetch Data on Mount or Token Change
   useEffect(() => {
+    let retryCount = 0;
+    const maxRetries = 3;
+
     const fetchData = async () => {
       setIsLoading(true);
+      setFetchError(null);
       try {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const resRes = await fetchWithTimeout('/api/restaurants');
-        if (resRes.ok) setRestaurants(await (resRes as any).safeJson());
+        if (resRes.ok) {
+          setRestaurants(await (resRes as any).safeJson());
+        } else {
+          throw new Error(`Server returned ${resRes.status} for /api/restaurants`);
+        }
 
         if (token) {
           const [userRes, ordersRes] = await Promise.all([
@@ -261,8 +272,16 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
           if (userRes.ok) setProfileData(await (userRes as any).safeJson());
           if (ordersRes.ok) setOrders(await (ordersRes as any).safeJson());
         }
-      } catch (error) {
+        retryCount = 0; // Reset on success
+      } catch (error: any) {
         console.error("Failed to fetch data:", error);
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying fetch (${retryCount}/${maxRetries})...`);
+          setTimeout(fetchData, 2000 * retryCount);
+        } else {
+          setFetchError(error.message || "Erreur de connexion au serveur");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -424,9 +443,10 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
       r.menu?.some((item: any) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesDietary = !dietaryFilter || r.tags.some((tag: string) => tag.toLowerCase() === dietaryFilter.toLowerCase());
+    const matchesStoreType = !selectedStoreType || r.type === selectedStoreType;
     const matchesFavorites = sortBy !== 'favorites' || favorites.includes(r.id);
     
-    return matchesSearch && matchesDietary && matchesFavorites;
+    return matchesSearch && matchesDietary && matchesStoreType && matchesFavorites;
   });
 
   const toggleFavorite = (restaurantId: string) => {
@@ -436,6 +456,22 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
         : [...prev, restaurantId]
     );
   };
+
+  if (fetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-red-50">
+        <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-red-700 mb-2">Erreur de chargement</h2>
+        <p className="text-red-600 mb-6">{fetchError}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-100"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -558,6 +594,40 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                       />
                     </div>
                   ))}
+                </div>
+
+                {/* Store Types */}
+                <div className="mt-6 px-4">
+                  <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                    {STORE_TYPES.map(type => {
+                      const Icon = (lucideIcons as any)[type.icon] || Store;
+                      const isActive = selectedStoreType === type.id;
+                      return (
+                        <button 
+                          key={type.id}
+                          onClick={() => setSelectedStoreType(isActive ? null : type.id)}
+                          className="flex flex-col items-center gap-2 flex-shrink-0"
+                        >
+                          <div className={cn(
+                            "w-20 h-20 rounded-[24px] flex flex-col items-center justify-center transition-all relative overflow-hidden group",
+                            isActive ? type.color : (isDark ? "bg-gray-800" : "bg-white border border-gray-100 shadow-sm")
+                          )}>
+                            <Icon className={cn("w-8 h-8 mb-1", isActive ? "text-white" : (isDark ? "text-gray-400" : "text-gray-600"))} />
+                            <div className={cn(
+                              "absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity",
+                              isActive && "hidden"
+                            )} />
+                          </div>
+                          <span className={cn(
+                            "text-[10px] font-black uppercase tracking-widest",
+                            isActive ? (isDark ? "text-white" : "text-gray-900") : "text-gray-400"
+                          )}>
+                            {type.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Search Bar */}
@@ -694,6 +764,14 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                           <span className="text-xs font-bold">{restaurant.rating}</span>
                         </div>
+                        {restaurant.type && restaurant.type !== 'restaurant' && (
+                          <div className={cn(
+                            "absolute top-4 right-20 px-3 py-1 rounded-lg shadow-lg flex items-center gap-1 text-white text-[10px] font-black uppercase tracking-widest",
+                            STORE_TYPES.find(t => t.id === restaurant.type)?.color || 'bg-gray-500'
+                          )}>
+                            {STORE_TYPES.find(t => t.id === restaurant.type)?.name}
+                          </div>
+                        )}
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();

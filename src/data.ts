@@ -49,3 +49,11 @@ export const CATEGORIES = [
   { id: 'c5', name: 'Sushi', icon: '🍣' },
   { id: 'c6', name: 'Sain', icon: '🥗' },
 ];
+
+export const STORE_TYPES = [
+  { id: 'restaurant', name: 'Restaurants', icon: 'Utensils', color: 'bg-orange-500' },
+  { id: 'clothing', name: 'Mode', icon: 'Shirt', color: 'bg-purple-500' },
+  { id: 'supermarket', name: 'Supermarché', icon: 'ShoppingBasket', color: 'bg-green-500' },
+  { id: 'pharmacy', name: 'Pharmacie', icon: 'PlusSquare', color: 'bg-red-500' },
+  { id: 'other', name: 'Commerces', icon: 'Store', color: 'bg-blue-500' },
+];
