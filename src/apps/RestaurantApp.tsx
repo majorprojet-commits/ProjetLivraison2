@@ -114,6 +114,22 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
     }
   };
 
+  const handleAddDish = async (dishData: any) => {
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}/menu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(dishData)
+      });
+      if (res.ok) {
+        const addedDish = await (res as any).safeJson();
+        dispatch(setMenu([...menu, addedDish]));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -182,6 +198,12 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
             Inventaire Rapide
           </button>
           <button 
+            onClick={() => setActiveTab('menu')}
+            className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'menu' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
+          >
+            Ma Carte
+          </button>
+          <button 
             onClick={() => setActiveTab('dashboard')}
             className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'dashboard' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
           >
@@ -190,6 +212,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
         </div>
 
         {activeTab === 'operations' && <OperationsView orders={orders} onUpdateStatus={handleUpdateStatus} onAddTime={handleAddTime} />}
+        {activeTab === 'menu' && <MenuView menu={menu} onAddDish={handleAddDish} />}
         {activeTab === 'inventory' && <QuickInventory menu={menu} token={token} restaurantId={restaurantId} />}
         {activeTab === 'dashboard' && <DashboardView analytics={{ dailyRevenue: 0, weeklyRevenue: 0, cancellationRate: 0, revenueHistory: [], topDishes: [] }} />}
       </main>
@@ -519,14 +542,36 @@ function StatCard({ label, value, icon: Icon, trend, color }: any) {
   );
 }
 
-function MenuView({ menu }: { menu: any[] }) {
+function MenuView({ menu, onAddDish }: { menu: any[], onAddDish: (dish: any) => void }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newDish, setNewDish] = useState({
+    name: '',
+    price: '',
+    description: '',
+    category: 'Plat',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAddDish({
+      ...newDish,
+      price: parseFloat(newDish.price)
+    });
+    setIsModalOpen(false);
+    setNewDish({ name: '', price: '', description: '', category: 'Plat', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80' });
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-black">Gestion de la Carte</h3>
-            <button className="bg-black text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-gray-200 active:scale-95 transition-transform">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-black text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-gray-200 active:scale-95 transition-transform"
+            >
               <Plus className="w-5 h-5" /> Ajouter un Plat
             </button>
           </div>
@@ -607,6 +652,69 @@ function MenuView({ menu }: { menu: any[] }) {
           </div>
         </div>
       </div>
+
+      {/* Add Dish Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-2xl font-black mb-6">Ajouter un nouveau plat</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Nom du plat</label>
+                <input 
+                  required
+                  type="text" 
+                  value={newDish.name}
+                  onChange={e => setNewDish({...newDish, name: e.target.value})}
+                  className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+                  placeholder="ex: Burger Deluxe"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Prix (€)</label>
+                  <input 
+                    required
+                    type="number" 
+                    step="0.01"
+                    value={newDish.price}
+                    onChange={e => setNewDish({...newDish, price: e.target.value})}
+                    className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+                    placeholder="12.50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Catégorie</label>
+                  <select 
+                    value={newDish.category}
+                    onChange={e => setNewDish({...newDish, category: e.target.value})}
+                    className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20"
+                  >
+                    <option>Plat</option>
+                    <option>Entrée</option>
+                    <option>Dessert</option>
+                    <option>Boisson</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Description</label>
+                <textarea 
+                  required
+                  value={newDish.description}
+                  onChange={e => setNewDish({...newDish, description: e.target.value})}
+                  className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-orange-500/20 h-24 resize-none"
+                  placeholder="Description du plat..."
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-500 font-black uppercase tracking-widest text-xs">Annuler</button>
+                <button type="submit" className="flex-[2] py-4 rounded-2xl bg-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-100">Ajouter</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -175,8 +175,8 @@ const PROMOTIONS = [
   { id: 'p3', title: 'Soirée Sushi', subtitle: '1 acheté = 1 offert', color: 'bg-red-600', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=400&q=80' },
 ];
 
-const Skeleton = ({ className, key }: { className?: string, key?: any }) => (
-  <div className={cn("animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl", className)} key={key} />
+const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={cn("animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl", className)} />
 );
 
 export default function ClientApp({ token: propToken, user: propUser, onLogout }: { token: string, user: any, onLogout: () => void }) {
