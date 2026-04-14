@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { OrderCtrl } from '../controllers/OrderCtrl.js';
 import { CreateOrder } from '../../usecases/CreateOrder.js';
 import { GetOrders } from '../../usecases/GetOrders.js';
-import { GetRestaurantOrders } from '../../usecases/GetRestaurantOrders.js';
+import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
 import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
 import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.js';
 import { GetDriverOrders } from '../../usecases/GetDriverOrders.js';
@@ -14,7 +14,7 @@ const router = Router();
 const repo = new MongoOrderRepo();
 const createUseCase = new CreateOrder(repo);
 const getUseCase = new GetOrders(repo);
-const getRestaurantOrdersUseCase = new GetRestaurantOrders(repo);
+const getSellerOrdersUseCase = new GetSellerOrders(repo);
 const updateOrderStatusUseCase = new UpdateOrderStatus(repo);
 const getAvailableOrdersUseCase = new GetAvailableOrders(repo);
 const getDriverOrdersUseCase = new GetDriverOrders(repo);
@@ -22,7 +22,7 @@ const assignDriverUseCase = new AssignDriver(repo);
 const ctrl = new OrderCtrl(
   createUseCase, 
   getUseCase, 
-  getRestaurantOrdersUseCase, 
+  getSellerOrdersUseCase, 
   updateOrderStatusUseCase,
   getAvailableOrdersUseCase,
   getDriverOrdersUseCase,
@@ -33,7 +33,7 @@ router.post('/', authMiddleware, ctrl.create);
 router.get('/', authMiddleware, ctrl.getAll);
 router.get('/available', authMiddleware, ctrl.getAvailable);
 router.get('/driver', authMiddleware, ctrl.getForDriver);
-router.get('/restaurant/:restaurantId', authMiddleware, ctrl.getForRestaurant);
+router.get('/seller/:sellerId', authMiddleware, ctrl.getForSeller);
 router.put('/:id/status', authMiddleware, ctrl.updateStatus);
 router.put('/:id/assign', authMiddleware, ctrl.assignToDriver);
 export default router;

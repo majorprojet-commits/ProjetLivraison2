@@ -5,5 +5,5 @@ export interface IUserRepo {
   create(user: User): Promise<User>;
   update(user: User): Promise<User>;
   findAll(): Promise<User[]>;
-  updateRole(id: string, role: string, restaurantId?: string): Promise<User | null>;
+  updateRole(id: string, role: string, sellerId?: string): Promise<User | null>;
 }

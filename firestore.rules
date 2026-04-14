@@ -15,8 +15,8 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Restaurants collection
-    match /restaurants/{restaurantId} {
+    // Sellers collection
+    match /sellers/{sellerId} {
       allow read, write: if true;
     }
 

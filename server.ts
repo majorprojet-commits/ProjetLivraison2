@@ -1,38 +1,47 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
+import next from 'next';
 import path from 'path';
 import apiRoutes from './server/api/routes/index.js';
 import { connectDB } from './server/db/mongoose.js';
 
+const dev = process.env.NODE_ENV !== 'production';
+const nextApp = next({ dev });
+const handle = nextApp.getRequestHandler();
+
 async function startServer() {
+  console.log('Starting Next.js app preparation...');
+  try {
+    await nextApp.prepare();
+    console.log('Next.js app prepared successfully.');
+  } catch (err) {
+    console.error('Error during Next.js app preparation:', err);
+    process.exit(1);
+  }
+  
   const app = express();
   const PORT = 3000;
 
-  // Connect to MongoDB
-  await connectDB();
+  console.log('Connecting to MongoDB...');
+  try {
+    await connectDB();
+    console.log('Connected to MongoDB.');
+  } catch (err) {
+    console.error('Error connecting to MongoDB:', err);
+  }
 
   app.use(express.json());
 
   // API Routes
+  console.log('Registering API routes...');
   app.use('/api', apiRoutes);
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  // Next.js handler
+  app.all('*', (req, res) => {
+    return handle(req, res);
+  });
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`> Server ready on http://localhost:${PORT}`);
   });
 }
 

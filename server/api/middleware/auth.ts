@@ -4,9 +4,9 @@ import jwt from 'jsonwebtoken';
 export interface AuthRequest extends Request {
   user?: {
     id: string;
-    role: 'client' | 'restaurant' | 'driver' | 'admin';
+    role: 'client' | 'seller' | 'driver' | 'admin';
     name: string;
-    restaurantId?: string;
+    sellerId?: string;
   };
 }
 
@@ -20,7 +20,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   
   // Bypass for testing/dev mode
   if (token === 'dev-token') {
-    req.user = { id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', restaurantId: 'r1' };
+    req.user = { id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', sellerId: 'r1' };
     return next();
   }
 

@@ -9,7 +9,7 @@ const ctrl = new AdminCtrl();
 router.use(authMiddleware, roleMiddleware(['admin']));
 
 router.get('/stats', ctrl.getGlobalStats);
-router.put('/restaurants/:id/status', ctrl.updateRestaurantStatus);
+router.put('/sellers/:id/status', ctrl.updateSellerStatus);
 router.put('/config/commissions', ctrl.updateCommissionRate);
 router.put('/users/:id/ban', ctrl.banUser);
 

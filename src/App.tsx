@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import ClientApp from './apps/ClientApp';
-import RestaurantApp from './apps/RestaurantApp';
+import SellerApp from './apps/SellerApp';
 import DriverApp from './apps/DriverApp';
 import AdminApp from './apps/AdminApp';
 import { fetchWithTimeout } from './lib/utils';
@@ -16,7 +16,7 @@ export default function App() {
     const fetchUser = async () => {
       // If we are using the dev-token, we set a mock user immediately
       if (token === 'dev-token') {
-        setUser({ id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', restaurantId: 'r1' });
+        setUser({ id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', sellerId: 'r1' });
         setIsLoading(false);
         return;
       }
@@ -34,12 +34,12 @@ export default function App() {
         } else {
           // If real token fails, fallback to dev mode for testing
           setToken('dev-token');
-          setUser({ id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', restaurantId: 'r1' });
+          setUser({ id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', sellerId: 'r1' });
         }
       } catch (e) {
         console.error("Auth check failed, falling back to dev mode:", e);
         setToken('dev-token');
-        setUser({ id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', restaurantId: 'r1' });
+        setUser({ id: 'dev-admin-id', role: 'admin', name: 'Administrateur (Dev)', sellerId: 'r1' });
       } finally {
         setIsLoading(false);
       }
@@ -81,18 +81,18 @@ export default function App() {
             {/* Client App Route */}
             <Route path="/" element={<ClientApp token={token!} user={user} onLogout={handleLogout} />} />
             
-            {/* Restaurant App Route */}
+            {/* Seller App Route */}
             <Route 
-              path="/restaurant/*" 
+              path="/vendeur/*" 
               element={
                 !token ? (
                   <Navigate to="/" replace />
-                ) : user?.role === 'restaurant' || user?.role === 'admin' ? (
-                  <RestaurantApp token={token} onLogout={handleLogout} user={user} />
+                ) : user?.role === 'seller' || user?.role === 'admin' ? (
+                  <SellerApp token={token} onLogout={handleLogout} user={user} />
                 ) : (
                   <div className="p-8 text-center">
                     <h1 className="text-2xl font-bold text-red-500">Accès Refusé</h1>
-                    <p>Vous n'êtes pas un restaurateur.</p>
+                    <p>Vous n'êtes pas un vendeur.</p>
                     <a href="/" className="text-blue-500 underline mt-4 block">Retour à l'accueil</a>
                   </div>
                 )
@@ -123,7 +123,7 @@ export default function App() {
               element={
                 !token ? (
                   <Navigate to="/" replace />
-                ) : (user?.role === 'admin' || user?.role === 'restaurant') ? (
+                ) : (user?.role === 'admin' || user?.role === 'seller') ? (
                   <AdminApp token={token} onLogout={handleLogout} user={user} />
                 ) : (
                   <div className="p-8 text-center">
@@ -141,7 +141,7 @@ export default function App() {
         <div className="bg-orange-600 text-white p-2 flex justify-center gap-6 text-xs font-bold sticky bottom-0 z-[9999] shadow-lg">
           <span className="bg-white text-orange-600 px-2 py-0.5 rounded uppercase tracking-widest text-[10px]">Mode Test Actif</span>
           <Link to="/" className="hover:underline transition-all">Interface Client</Link>
-          <Link to="/restaurant" className="hover:underline transition-all">Interface Restaurant</Link>
+          <Link to="/vendeur" className="hover:underline transition-all">Interface Vendeur</Link>
           <Link to="/driver" className="hover:underline transition-all">Interface Livreur</Link>
           <Link to="/admin" className="hover:underline transition-all">Dashboard Admin</Link>
         </div>

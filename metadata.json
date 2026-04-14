@@ -1,6 +1,6 @@
 {
-  "name": "Food Delivery Web Prototype",
-  "description": "A responsive web prototype of a food delivery app (Uber Eats clone) featuring restaurant listings, menus, and a cart system.",
+  "name": "Multi-App Delivery Portal",
+  "description": "A comprehensive delivery platform featuring a Next.js Admin Dashboard and Expo/React Native mobile apps for Clients, Sellers, and Drivers.",
   "requestFramePermissions": [
     "geolocation"
   ]

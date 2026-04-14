@@ -8,8 +8,8 @@ const schema = new mongoose.Schema({
   deliveryTime: String,
   deliveryFee: Number,
   menu: Array,
-  type: { type: String, enum: ['restaurant', 'clothing', 'supermarket', 'pharmacy', 'other'], default: 'restaurant' },
+  type: { type: String, enum: ['restaurant', 'clothing', 'supermarket', 'other'], default: 'restaurant' },
   status: { type: String, enum: ['active', 'suspended', 'pending'], default: 'active' },
   ownerId: { type: String }
 }, { timestamps: true });
-export const RestaurantModel = mongoose.model('Restaurant', schema);
+export const SellerModel = mongoose.model('Seller', schema);

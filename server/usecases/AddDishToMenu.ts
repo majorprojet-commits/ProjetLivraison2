@@ -1,10 +1,10 @@
-import { IRestaurantRepo } from '../core/repos/IRestaurantRepo.js';
+import { ISellerRepo } from '../core/repos/ISellerRepo.js';
 
 export class AddDishToMenu {
-  constructor(private repo: IRestaurantRepo) {}
-  async execute(restaurantId: string, dishData: any) {
-    const restaurant = await this.repo.findById(restaurantId);
-    if (!restaurant) throw new Error('Restaurant not found');
+  constructor(private repo: ISellerRepo) {}
+  async execute(sellerId: string, dishData: any) {
+    const seller = await this.repo.findById(sellerId);
+    if (!seller) throw new Error('Seller not found');
 
     const newDish = {
       id: Math.random().toString(36).substr(2, 9),
@@ -12,8 +12,8 @@ export class AddDishToMenu {
       available: dishData.available !== undefined ? dishData.available : true
     };
 
-    const updatedMenu = [...(restaurant.menu || []), newDish];
-    await this.repo.updateMenu(restaurantId, updatedMenu);
+    const updatedMenu = [...(seller.menu || []), newDish];
+    await this.repo.updateMenu(sellerId, updatedMenu);
     return newDish;
   }
 }

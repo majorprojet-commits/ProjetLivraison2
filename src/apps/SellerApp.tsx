@@ -25,30 +25,28 @@ const getTerminology = (type: string) => {
       return { menu: 'Catalogue', dish: 'Article', dishes: 'Articles', cuisine: 'Ventes', addDish: 'Ajouter un Article' };
     case 'supermarket':
       return { menu: 'Rayons', dish: 'Produit', dishes: 'Produits', cuisine: 'Commandes', addDish: 'Ajouter un Produit' };
-    case 'pharmacy':
-      return { menu: 'Produits', dish: 'Médicament', dishes: 'Médicaments', cuisine: 'Ordonnances', addDish: 'Ajouter un Produit' };
     default:
       return { menu: 'Ma Carte', dish: 'Plat', dishes: 'Plats', cuisine: 'Cuisine', addDish: 'Ajouter un Plat' };
   }
 };
 
-export default function RestaurantApp({ token, onLogout, user }: { token: string, onLogout: () => void, user: any }) {
+export default function SellerApp({ token, onLogout, user }: { token: string, onLogout: () => void, user: any }) {
   const dispatch = useDispatch();
-  const { orders, settings, menu } = useSelector((state: RootState) => state.restaurant);
+  const { orders, settings, menu } = useSelector((state: RootState) => state.seller);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('operations');
-  const [restaurantData, setRestaurantData] = useState<any>(null);
+  const [sellerData, setSellerData] = useState<any>(null);
   const notificationSound = useRef<HTMLAudioElement | null>(null);
 
-  const restaurantId = user?.restaurantId;
-  const term = getTerminology(restaurantData?.type || 'restaurant');
+  const sellerId = user?.sellerId;
+  const term = getTerminology(sellerData?.type || 'seller');
 
   useEffect(() => {
     notificationSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
   }, []);
 
   useEffect(() => {
-    if (!restaurantId) {
+    if (!sellerId) {
       setIsLoading(false);
       return;
     }
@@ -56,28 +54,28 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
         
-        // Fetch Restaurant Details
-        const restaurantsRes = await fetchWithTimeout('/api/restaurants');
-        if (restaurantsRes.ok) {
-          const allRestaurants = await (restaurantsRes as any).safeJson();
-          const current = allRestaurants.find((r: any) => r.id === restaurantId);
-          if (current) setRestaurantData(current);
+        // Fetch Seller Details
+        const sellersRes = await fetchWithTimeout('/api/sellers');
+        if (sellersRes.ok) {
+          const allSellers = await (sellersRes as any).safeJson();
+          const current = allSellers.find((r: any) => r.id === sellerId);
+          if (current) setSellerData(current);
         }
 
         // Initial Fetch Orders
-        const ordersRes = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, { headers });
+        const ordersRes = await fetchWithTimeout(`/api/orders/seller/${sellerId}`, { headers });
         if (ordersRes.ok) {
           const newOrders = await (ordersRes as any).safeJson();
           dispatch(setOrders(newOrders));
         }
 
         // Fetch Menu
-        const menuRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/menu`, { headers });
+        const menuRes = await fetchWithTimeout(`/api/sellers/${sellerId}/menu`, { headers });
         if (menuRes.ok) {
           dispatch(setMenu(await (menuRes as any).safeJson()));
         }
       } catch (error) {
-        console.error("Failed to fetch restaurant data:", error);
+        console.error("Failed to fetch seller data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -86,7 +84,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
     fetchData();
 
     // Firestore Real-time Listener
-    const q = query(collection(db, 'orders'), where('restaurantId', '==', restaurantId));
+    const q = query(collection(db, 'orders'), where('sellerId', '==', sellerId));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added' || change.type === 'modified') {
@@ -103,7 +101,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
     });
 
     return () => unsubscribe();
-  }, [token, restaurantId, dispatch]);
+  }, [token, sellerId, dispatch]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string, data?: any) => {
     dispatch(updateOrderStatus({ id: orderId, status: newStatus }));
@@ -140,7 +138,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
 
   const handleAddDish = async (dishData: any) => {
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/menu`, {
+      const res = await fetch(`/api/sellers/${sellerId}/menu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(dishData)
@@ -156,7 +154,7 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
 
   const handleUpdateDish = async (dishId: string, dishData: any) => {
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${dishId}`, {
+      const res = await fetch(`/api/sellers/${sellerId}/menu/${dishId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(dishData)
@@ -171,9 +169,9 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
   };
 
   const handleDeleteDish = async (dishId: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce plat ?')) return;
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) return;
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${dishId}`, {
+      const res = await fetch(`/api/sellers/${sellerId}/menu/${dishId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -187,13 +185,13 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
 
   const handleUpdateSettings = async (settings: any) => {
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/settings`, {
+      const res = await fetch(`/api/sellers/${sellerId}/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(settings)
       });
       if (res.ok) {
-        setRestaurantData((prev: any) => ({ ...prev, ...settings }));
+        setSellerData((prev: any) => ({ ...prev, ...settings }));
       }
     } catch (e) {
       console.error(e);
@@ -217,8 +215,8 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
             <ChefHat className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Terminal Cuisine</h2>
-            <p className="text-xs text-gray-500 font-bold">{user?.name || 'Restaurant'}</p>
+            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Terminal Vendeur</h2>
+            <p className="text-xs text-gray-500 font-bold">{user?.name || 'Vendeur'}</p>
           </div>
         </div>
 
@@ -289,9 +287,9 @@ export default function RestaurantApp({ token, onLogout, user }: { token: string
 
         {activeTab === 'operations' && <OperationsView orders={orders} onUpdateStatus={handleUpdateStatus} onAddTime={handleAddTime} />}
         {activeTab === 'menu' && <MenuView menu={menu} onAddDish={handleAddDish} onUpdateDish={handleUpdateDish} onDeleteDish={handleDeleteDish} term={term} />}
-        {activeTab === 'inventory' && <QuickInventory menu={menu} token={token} restaurantId={restaurantId} />}
+        {activeTab === 'inventory' && <QuickInventory menu={menu} token={token} sellerId={sellerId} />}
         {activeTab === 'dashboard' && <DashboardView analytics={{ dailyRevenue: 0, weeklyRevenue: 0, cancellationRate: 0, revenueHistory: [], topDishes: [] }} />}
-        {activeTab === 'settings' && <SettingsView restaurant={restaurantData} onUpdate={handleUpdateSettings} />}
+        {activeTab === 'settings' && <SettingsView seller={sellerData} onUpdate={handleUpdateSettings} />}
       </main>
     </div>
   );
@@ -755,7 +753,7 @@ function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term }: { menu:
             <h3 className="text-xl font-black text-red-800 mb-4 flex items-center gap-2">
               <AlertTriangle className="w-6 h-6" /> Fermeture Exceptionnelle
             </h3>
-            <p className="text-sm text-red-600 font-medium mb-6">Désactivez votre restaurant pour une période définie (vacances, travaux...).</p>
+            <p className="text-sm text-red-600 font-medium mb-6">Désactivez votre commerce pour une période définie (vacances, travaux...).</p>
             <button className="w-full py-3 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-100">
               Planifier une Fermeture
             </button>
@@ -841,12 +839,12 @@ function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term }: { menu:
   );
 }
 
-function QuickInventory({ menu, token, restaurantId }: { menu: any[], token: string, restaurantId: string }) {
+function QuickInventory({ menu, token, sellerId }: { menu: any[], token: string, sellerId: string }) {
   const dispatch = useDispatch();
 
   const toggleAvailability = async (itemId: string, current: boolean) => {
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${itemId}/availability`, {
+      const res = await fetch(`/api/sellers/${sellerId}/menu/${itemId}/availability`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ available: !current })
@@ -1087,26 +1085,26 @@ function PromosView() {
   );
 }
 
-function SettingsView({ restaurant, onUpdate }: { restaurant: any, onUpdate: (settings: any) => void }) {
+function SettingsView({ seller, onUpdate }: { seller: any, onUpdate: (settings: any) => void }) {
   const [formData, setFormData] = useState({
-    name: restaurant?.name || '',
-    type: restaurant?.type || 'restaurant',
-    image: restaurant?.image || '',
-    deliveryTime: restaurant?.deliveryTime || '',
-    deliveryFee: restaurant?.deliveryFee || 0
+    name: seller?.name || '',
+    type: seller?.type || 'restaurant',
+    image: seller?.image || '',
+    deliveryTime: seller?.deliveryTime || '',
+    deliveryFee: seller?.deliveryFee || 0
   });
 
   useEffect(() => {
-    if (restaurant) {
+    if (seller) {
       setFormData({
-        name: restaurant.name,
-        type: restaurant.type || 'restaurant',
-        image: restaurant.image,
-        deliveryTime: restaurant.deliveryTime,
-        deliveryFee: restaurant.deliveryFee
+        name: seller.name,
+        type: seller.type || 'restaurant',
+        image: seller.image,
+        deliveryTime: seller.deliveryTime,
+        deliveryFee: seller.deliveryFee
       });
     }
-  }, [restaurant]);
+  }, [seller]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

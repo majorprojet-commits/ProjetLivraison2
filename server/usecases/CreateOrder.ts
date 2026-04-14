@@ -10,7 +10,7 @@ export class CreateOrder {
     const order = new Order(
       '', 
       data.userId, 
-      data.restaurantId, 
+      data.sellerId, 
       data.items, 
       data.total, 
       'pending', 
@@ -27,7 +27,7 @@ export class CreateOrder {
         await db.collection('orders').doc(created.id).set({
           id: created.id,
           userId: created.userId,
-          restaurantId: created.restaurantId,
+          sellerId: created.sellerId,
           status: created.status,
           total: created.total,
           pickupCode: created.pickupCode,

@@ -7,7 +7,7 @@ export class MongoOrderRepo implements IOrderRepo {
     return new Order(
       doc._id.toString(),
       doc.userId || '',
-      doc.restaurantId || '',
+      doc.sellerId || '',
       doc.items || [],
       doc.total || 0,
       doc.status || '',
@@ -30,8 +30,8 @@ export class MongoOrderRepo implements IOrderRepo {
     const docs = await OrderModel.find({ userId });
     return docs.map(doc => this.mapDocToEntity(doc));
   }
-  async findByRestaurantId(restaurantId: string): Promise<Order[]> {
-    const docs = await OrderModel.find({ restaurantId }).sort({ createdAt: -1 });
+  async findBySellerId(sellerId: string): Promise<Order[]> {
+    const docs = await OrderModel.find({ sellerId }).sort({ createdAt: -1 });
     return docs.map(doc => this.mapDocToEntity(doc));
   }
   async updateStatus(orderId: string, status: string, extraData: any = {}): Promise<Order | null> {

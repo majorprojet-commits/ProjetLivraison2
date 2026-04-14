@@ -224,8 +224,8 @@ function OrderCard({ order, onAction, actionText, actionColor, disabled = false 
             <MapPin className="w-4 h-4 text-orange-500" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Restaurant</p>
-            <p className="font-bold text-gray-700">Restaurant ID: {order.restaurantId.slice(-4)}</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vendeur</p>
+            <p className="font-bold text-gray-700">Vendeur ID: {order.sellerId.slice(-4)}</p>
           </div>
         </div>
         <div className="flex items-start gap-3 text-sm">

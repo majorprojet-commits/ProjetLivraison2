@@ -1,4 +1,4 @@
-export class Restaurant {
+export class Seller {
   constructor(
     public id: string,
     public name: string,
@@ -8,6 +8,6 @@ export class Restaurant {
     public deliveryTime: string,
     public deliveryFee: number,
     public menu: any[],
-    public type: 'restaurant' | 'clothing' | 'supermarket' | 'pharmacy' | 'other' = 'restaurant'
+    public type: 'restaurant' | 'clothing' | 'supermarket' | 'other' = 'restaurant'
   ) {}
 }

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { CreateOrder } from '../../usecases/CreateOrder.js';
 import { GetOrders } from '../../usecases/GetOrders.js';
-import { GetRestaurantOrders } from '../../usecases/GetRestaurantOrders.js';
+import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
 import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
 import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.js';
 import { GetDriverOrders } from '../../usecases/GetDriverOrders.js';
@@ -13,7 +13,7 @@ export class OrderCtrl {
   constructor(
     private createOrder: CreateOrder, 
     private getOrders: GetOrders,
-    private getRestaurantOrders: GetRestaurantOrders,
+    private getSellerOrders: GetSellerOrders,
     private updateOrderStatus: UpdateOrderStatus,
     private getAvailableOrders: GetAvailableOrders,
     private getDriverOrders: GetDriverOrders,
@@ -34,27 +34,27 @@ export class OrderCtrl {
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
 
-  getForRestaurant = async (req: AuthRequest, res: Response) => {
+  getForSeller = async (req: AuthRequest, res: Response) => {
     try {
-      const restaurantId = req.params.restaurantId;
+      const sellerId = req.params.sellerId;
       
-      // RBAC: Admin can see everything, Restaurant owner only their own
-      if (req.user.role === 'restaurant' && req.user.restaurantId !== restaurantId) {
-        return res.status(403).json({ error: 'Forbidden: Access restricted to your own restaurant' });
+      // RBAC: Admin can see everything, Seller owner only their own
+      if (req.user.role === 'seller' && req.user.sellerId !== sellerId) {
+        return res.status(403).json({ error: 'Forbidden: Access restricted to your own store' });
       }
       
-      if (req.user.role !== 'restaurant' && req.user.role !== 'admin') {
+      if (req.user.role !== 'seller' && req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Forbidden' });
       }
 
-      const data = await this.getRestaurantOrders.execute(restaurantId);
+      const data = await this.getSellerOrders.execute(sellerId);
       res.json(data.map(OrderVM.format));
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
 
   updateStatus = async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user.role !== 'restaurant' && req.user.role !== 'admin' && req.user.role !== 'driver') {
+      if (req.user.role !== 'seller' && req.user.role !== 'admin' && req.user.role !== 'driver') {
         return res.status(403).json({ error: 'Forbidden' });
       }
       const orderId = req.params.id;

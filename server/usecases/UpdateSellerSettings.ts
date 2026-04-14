@@ -1,13 +1,11 @@
 import { ISellerRepo } from '../core/repos/ISellerRepo.js';
 
-export class DeleteDish {
+export class UpdateSellerSettings {
   constructor(private repo: ISellerRepo) {}
-  async execute(sellerId: string, dishId: string) {
+  async execute(sellerId: string, settings: any) {
     const seller = await this.repo.findById(sellerId);
     if (!seller) throw new Error('Seller not found');
 
-    const updatedMenu = (seller.menu || []).filter((item: any) => item.id !== dishId);
-
-    await this.repo.updateMenu(sellerId, updatedMenu);
+    await this.repo.updateSettings(sellerId, settings);
   }
 }

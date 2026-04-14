@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 const schema = new mongoose.Schema({
   _id: { type: String },
   userId: String,
-  restaurantId: String,
+  sellerId: String,
   driverId: String,
   items: Array,
   total: Number,
@@ -13,7 +13,7 @@ const schema = new mongoose.Schema({
   prepTimeExtension: { type: Number, default: 0 }, // Extra minutes added
   driverEta: { type: Date }, // Estimated arrival time of driver
   pickedUpAt: { type: Date }, // When the driver picked up the order
-  restaurantContact: String,
+  sellerContact: String,
   clientContact: String
 }, { timestamps: true });
 export const OrderModel = mongoose.model('Order', schema);

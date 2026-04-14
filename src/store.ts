@@ -6,7 +6,7 @@ interface Order {
   items: any[];
   total: number;
   createdAt: string;
-  restaurantId: string;
+  sellerId: string;
   driverId?: string;
   driverEta?: number;
   pickupCode?: string;
@@ -14,7 +14,7 @@ interface Order {
   prepTimeExtension?: number;
 }
 
-interface RestaurantState {
+interface SellerState {
   orders: Order[];
   menu: any[];
   settings: {
@@ -30,7 +30,7 @@ interface RestaurantState {
   reviews: any[];
 }
 
-const initialState: RestaurantState = {
+const initialState: SellerState = {
   orders: [],
   menu: [],
   settings: {
@@ -46,8 +46,8 @@ const initialState: RestaurantState = {
   reviews: [],
 };
 
-const restaurantSlice = createSlice({
-  name: 'restaurant',
+const sellerSlice = createSlice({
+  name: 'seller',
   initialState,
   reducers: {
     setOrders: (state, action: PayloadAction<Order[]>) => {
@@ -72,11 +72,11 @@ const restaurantSlice = createSlice({
   },
 });
 
-export const { setOrders, updateOrderStatus, setMenu, toggleRushMode, setAnalytics, setReviews } = restaurantSlice.actions;
+export const { setOrders, updateOrderStatus, setMenu, toggleRushMode, setAnalytics, setReviews } = sellerSlice.actions;
 
 export const store = configureStore({
   reducer: {
-    restaurant: restaurantSlice.reducer,
+    seller: sellerSlice.reducer,
   },
 });
 

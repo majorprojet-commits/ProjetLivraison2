@@ -21,23 +21,23 @@ import { format } from 'date-fns';
 
 export default function AdminApp({ token, onLogout, user: initialUser }: { token: string, onLogout: () => void, user: any }) {
   const dispatch = useDispatch();
-  const { orders, menu, analytics, reviews } = useSelector((state: RootState) => state.restaurant);
+  const { orders, menu, analytics, reviews } = useSelector((state: RootState) => state.seller);
   const [activeView, setActiveView] = useState<string>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
-  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [sellers, setSellers] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
   const [disputes, setDisputes] = useState<any[]>([]);
   const [testRole, setTestRole] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([
-    { id: 1, title: 'Nouvelle Commande', message: 'Le restaurant Burger King a reçu une commande.', time: 'Il y a 2 min', read: false },
+    { id: 1, title: 'Nouvelle Commande', message: 'Le vendeur Burger King a reçu une commande.', time: 'Il y a 2 min', read: false },
     { id: 2, title: 'Litige Ouvert', message: 'Un client a signalé un problème avec sa commande.', time: 'Il y a 10 min', read: false }
   ]);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const currentUser = testRole ? { ...initialUser, role: testRole } : initialUser;
   const isSuperAdmin = currentUser?.role === 'admin';
-  const restaurantId = currentUser?.restaurantId;
+  const sellerId = currentUser?.sellerId;
 
   const fetchData = async () => {
     try {
@@ -47,29 +47,29 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
         // Super Admin Data
         const [uRes, rRes, sRes, zRes, dRes] = await Promise.all([
           fetchWithTimeout('/api/users', { headers }),
-          fetchWithTimeout('/api/restaurants', { headers }),
+          fetchWithTimeout('/api/sellers', { headers }),
           fetchWithTimeout('/api/admin/stats', { headers }),
           fetchWithTimeout('/api/admin/zones', { headers }),
           fetchWithTimeout('/api/admin/disputes', { headers })
         ]);
 
         if (uRes.ok) setUsers(await (uRes as any).safeJson());
-        if (rRes.ok) setRestaurants(await (rRes as any).safeJson());
+        if (rRes.ok) setSellers(await (rRes as any).safeJson());
         if (sRes.ok) dispatch(setAnalytics(await (sRes as any).safeJson()));
         if (zRes.ok) setZones(await (zRes as any).safeJson());
         if (dRes.ok) setDisputes(await (dRes as any).safeJson());
-      } else if (restaurantId) {
-        // Restaurant Owner Data
-        const menuRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/menu`, { headers });
+      } else if (sellerId) {
+        // Seller Owner Data
+        const menuRes = await fetchWithTimeout(`/api/sellers/${sellerId}/menu`, { headers });
         if (menuRes.ok) dispatch(setMenu(await (menuRes as any).safeJson()));
 
-        const reviewsRes = await fetchWithTimeout(`/api/restaurants/${restaurantId}/reviews`, { headers });
+        const reviewsRes = await fetchWithTimeout(`/api/sellers/${sellerId}/reviews`, { headers });
         if (reviewsRes.ok) dispatch(setReviews(await (reviewsRes as any).safeJson()));
 
-        const ordersRes = await fetchWithTimeout(`/api/orders/restaurant/${restaurantId}`, { headers });
+        const ordersRes = await fetchWithTimeout(`/api/orders/seller/${sellerId}`, { headers });
         if (ordersRes.ok) dispatch(setOrders(await (ordersRes as any).safeJson()));
 
-        // Restaurant Analytics Mock
+        // Seller Analytics Mock
         dispatch(setAnalytics({
           dailyRevenue: 1250.50,
           weeklyRevenue: 8400.00,
@@ -97,17 +97,17 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
 
   useEffect(() => {
     fetchData();
-  }, [token, isSuperAdmin, restaurantId, dispatch]);
+  }, [token, isSuperAdmin, sellerId, dispatch]);
 
-  const handleUpdateRestaurantStatus = async (id: string, status: string) => {
+  const handleUpdateSellerStatus = async (id: string, status: string) => {
     try {
-      const res = await fetch(`/api/admin/restaurants/${id}/status`, {
+      const res = await fetch(`/api/admin/sellers/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ status })
       });
       if (res.ok) {
-        setRestaurants(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+        setSellers(prev => prev.map(r => r.id === id ? { ...r, status } : r));
       }
     } catch (e) { console.error(e); }
   };
@@ -162,7 +162,7 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
           
           {isSuperAdmin ? (
             <>
-              <NavItem active={activeView === 'restaurants'} onClick={() => setActiveView('restaurants')} icon={Store} label="Restaurants" />
+              <NavItem active={activeView === 'restaurants'} onClick={() => setActiveView('restaurants')} icon={Store} label="Vendeurs" />
               <NavItem active={activeView === 'users'} onClick={() => setActiveView('users')} icon={Users} label="Utilisateurs" />
               <NavItem active={activeView === 'commissions'} onClick={() => setActiveView('commissions')} icon={DollarSign} label="Commissions" />
               <NavItem active={activeView === 'support'} onClick={() => setActiveView('support')} icon={MessageSquare} label="Support Client" />
@@ -192,7 +192,7 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
             <div>
               <h2 className="text-2xl font-black text-gray-900">
                 {activeView === 'dashboard' && "Vue d'ensemble"}
-                {activeView === 'restaurants' && "Gestion des Restaurants"}
+                {activeView === 'restaurants' && "Gestion des Vendeurs"}
                 {activeView === 'users' && "Gestion des Utilisateurs"}
                 {activeView === 'menu' && "Éditeur de Menu"}
                 {activeView === 'finance' && "Finance & Facturation"}
@@ -203,7 +203,7 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
                 {activeView === 'zones' && "Zones de Livraison"}
               </h2>
               <p className="text-sm text-gray-500 font-medium">
-                {isSuperAdmin ? "Super Administrateur" : `Restaurateur - ${currentUser?.name}`}
+                {isSuperAdmin ? "Super Administrateur" : `Vendeur - ${currentUser?.name}`}
               </p>
             </div>
 
@@ -216,7 +216,7 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
                 Admin
               </button>
               <button 
-                onClick={() => setTestRole('restaurant')}
+                onClick={() => setTestRole('seller')}
                 className={cn("px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all", !isSuperAdmin ? "bg-white text-orange-600 shadow-sm" : "text-gray-400")}
               >
                 Owner
@@ -280,10 +280,10 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
         </header>
 
         <div className="p-8 overflow-y-auto flex-1">
-          {activeView === 'dashboard' && (isSuperAdmin ? <SuperAdminDashboard analytics={analytics} /> : <RestaurantDashboard analytics={analytics} />)}
-          {activeView === 'restaurants' && isSuperAdmin && <RestaurantsManagement restaurants={restaurants} onUpdateStatus={handleUpdateRestaurantStatus} />}
+          {activeView === 'dashboard' && (isSuperAdmin ? <SuperAdminDashboard analytics={analytics} /> : <SellerDashboard analytics={analytics} />)}
+          {activeView === 'restaurants' && isSuperAdmin && <SellersManagement sellers={sellers} onUpdateStatus={handleUpdateSellerStatus} />}
           {activeView === 'users' && isSuperAdmin && <UsersManagement users={users} onBan={handleBanUser} />}
-          {activeView === 'menu' && !isSuperAdmin && <MenuView menu={menu} token={token} restaurantId={restaurantId} onRefresh={fetchData} />}
+          {activeView === 'menu' && !isSuperAdmin && <MenuView menu={menu} token={token} sellerId={sellerId} onRefresh={fetchData} />}
           {activeView === 'finance' && !isSuperAdmin && <FinanceView orders={orders} />}
           {activeView === 'reviews' && !isSuperAdmin && <ReviewsView reviews={reviews} />}
           {activeView === 'promos' && !isSuperAdmin && <PromosView />}
@@ -324,7 +324,7 @@ function SuperAdminDashboard({ analytics }: any) {
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard label="Volume d'Affaires" value={`${analytics.totalRevenue?.toLocaleString()} €`} icon={TrendingUp} trend="+15%" color="purple" />
-        <StatCard label="Restaurants Actifs" value={analytics.activeRestaurants} icon={Store} trend="+3" color="blue" />
+        <StatCard label="Vendeurs Actifs" value={analytics.activeSellers} icon={Store} trend="+3" color="blue" />
         <StatCard label="Total Commandes" value={analytics.totalOrders} icon={ShoppingBag} trend="+12%" color="green" />
         <StatCard label="Revenu Commissions" value={`${analytics.commissionRevenue?.toLocaleString()} €`} icon={DollarSign} trend="+8%" color="orange" />
       </div>
@@ -353,11 +353,11 @@ function SuperAdminDashboard({ analytics }: any) {
   );
 }
 
-function RestaurantsManagement({ restaurants, onUpdateStatus }: any) {
+function SellersManagement({ sellers, onUpdateStatus }: any) {
   return (
     <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
       <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-        <h3 className="text-xl font-black">Tous les Restaurants</h3>
+        <h3 className="text-xl font-black">Tous les Vendeurs</h3>
         <div className="flex gap-4">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -378,19 +378,19 @@ function RestaurantsManagement({ restaurants, onUpdateStatus }: any) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {restaurants.map((r: any) => (
+            {sellers.map((r: any) => (
               <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-8 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-                      {r.type === 'clothing' ? '👕' : r.type === 'supermarket' ? '🛒' : r.type === 'pharmacy' ? '🏥' : '🏪'}
+                      {r.type === 'clothing' ? '👕' : r.type === 'supermarket' ? '🛒' : '🏪'}
                     </div>
                     <span className="font-black text-sm">{r.name}</span>
                   </div>
                 </td>
                 <td className="px-8 py-4">
                   <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
-                    {r.type || 'restaurant'}
+                    {r.type || 'vendeur'}
                   </span>
                 </td>
                 <td className="px-8 py-4 text-sm text-gray-500 font-medium">{r.ownerEmail || 'N/A'}</td>
@@ -452,7 +452,7 @@ function UsersManagement({ users, onBan }: any) {
                   <span className={cn(
                     "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
                     u.role === 'admin' ? "bg-purple-100 text-purple-700" :
-                    u.role === 'restaurant' ? "bg-orange-100 text-orange-700" :
+                    u.role === 'seller' ? "bg-orange-100 text-orange-700" :
                     u.role === 'driver' ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
                   )}>
                     {u.role}
@@ -502,7 +502,7 @@ function CommissionsConfig({ onUpdate }: any) {
           </div>
         </div>
         <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-          <p className="text-xs text-blue-700 font-medium">Ce taux sera appliqué à toutes les nouvelles commandes. Les restaurants partenaires peuvent avoir des taux personnalisés négociés.</p>
+          <p className="text-xs text-blue-700 font-medium">Ce taux sera appliqué à toutes les nouvelles commandes. Les vendeurs partenaires peuvent avoir des taux personnalisés négociés.</p>
         </div>
       </div>
     </div>
@@ -575,8 +575,8 @@ function SupportView({ disputes, token, setDisputes }: any) {
           </div>
           <p className="text-gray-600 font-medium mb-6">{dispute.description}</p>
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-            <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-2">Restaurant concerné</p>
-            <p className="font-bold text-gray-700">{dispute.restaurantId?.name || 'N/A'}</p>
+            <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-2">Vendeur concerné</p>
+            <p className="font-bold text-gray-700">{dispute.sellerId?.name || 'N/A'}</p>
           </div>
         </div>
       ))}
@@ -712,7 +712,7 @@ function ZonesConfig({ zones, token, setZones }: any) {
 
 // --- Shared Components (Moved from RestaurantApp) ---
 
-function RestaurantDashboard({ analytics }: any) {
+function SellerDashboard({ analytics }: any) {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -764,7 +764,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: any) {
   );
 }
 
-function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token: string, restaurantId: string, onRefresh: () => void }) {
+function MenuView({ menu, token, sellerId, onRefresh }: { menu: any[], token: string, sellerId: string, onRefresh: () => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingDishId, setEditingDishId] = useState<string | null>(null);
@@ -784,8 +784,8 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
     setError(null);
     try {
       const url = editingDishId 
-        ? `/api/restaurants/${restaurantId}/menu/${editingDishId}`
-        : `/api/restaurants/${restaurantId}/menu`;
+        ? `/api/sellers/${sellerId}/menu/${editingDishId}`
+        : `/api/sellers/${sellerId}/menu`;
       
       const res = await fetch(url, {
         method: editingDishId ? 'PUT' : 'POST',
@@ -825,7 +825,7 @@ function MenuView({ menu, token, restaurantId, onRefresh }: { menu: any[], token
   const handleDelete = async (dishId: string) => {
     if (!window.confirm('Supprimer ce plat ?')) return;
     try {
-      const res = await fetch(`/api/restaurants/${restaurantId}/menu/${dishId}`, {
+      const res = await fetch(`/api/sellers/${sellerId}/menu/${dishId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

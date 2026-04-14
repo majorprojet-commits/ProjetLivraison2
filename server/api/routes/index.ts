@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import restaurantRoutes from './restaurant.js';
+import sellerRoutes from './seller.js';
 import orderRoutes from './order.js';
 import userRoutes from './user.js';
 import authRoutes from './auth.js';
@@ -18,7 +18,7 @@ router.get('/health', (req, res) => {
 
 router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
-router.use('/restaurants', restaurantRoutes);
+router.use('/sellers', sellerRoutes);
 router.use('/orders', orderRoutes);
 router.use('/users', userRoutes);
 

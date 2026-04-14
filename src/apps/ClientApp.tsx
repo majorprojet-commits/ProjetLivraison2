@@ -11,7 +11,7 @@ const TRANSLATIONS = {
   fr: {
     deliverNow: 'Livrer maintenant',
     scheduled: 'Programmée',
-    searchPlaceholder: 'Plats, restaurants ou cuisines',
+    searchPlaceholder: 'Articles, vendeurs ou commerces',
     featured: 'À la une',
     popular: 'Populaires',
     deliveryFee: 'Frais de livraison',
@@ -50,7 +50,7 @@ const TRANSLATIONS = {
     inTransit: 'En route',
     reorder: 'Recommander',
     track: 'Suivre',
-    searchPrompt: 'Que voulez-vous manger ?',
+    searchPrompt: 'Que recherchez-vous ?',
     noResults: 'Aucun résultat trouvé',
     trackingOrder: 'Suivi de commande',
     estimatedTime: 'Temps estimé',
@@ -80,7 +80,7 @@ const TRANSLATIONS = {
     halal: 'Halal',
     rateOrder: 'Noter la commande',
     howWasYourOrder: 'Comment était votre commande ?',
-    rateRestaurant: 'Notez le restaurant',
+    rateRestaurant: 'Notez le vendeur',
     rateDriver: 'Notez le livreur',
     commentPlaceholder: 'Laissez un commentaire...',
     submitReview: 'Envoyer l\'avis',
@@ -91,7 +91,7 @@ const TRANSLATIONS = {
   en: {
     deliverNow: 'Deliver now',
     scheduled: 'Scheduled',
-    searchPlaceholder: 'Dishes, restaurants or cuisines',
+    searchPlaceholder: 'Items, sellers or stores',
     featured: 'Featured',
     popular: 'Popular',
     deliveryFee: 'Delivery fee',
@@ -130,7 +130,7 @@ const TRANSLATIONS = {
     inTransit: 'In Transit',
     reorder: 'Reorder',
     track: 'Track',
-    searchPrompt: 'What do you want to eat?',
+    searchPrompt: 'What are you looking for?',
     noResults: 'No results found',
     trackingOrder: 'Order Tracking',
     estimatedTime: 'Estimated Time',
@@ -160,7 +160,7 @@ const TRANSLATIONS = {
     halal: 'Halal',
     rateOrder: 'Rate Order',
     howWasYourOrder: 'How was your order?',
-    rateRestaurant: 'Rate the restaurant',
+    rateRestaurant: 'Rate the seller',
     rateDriver: 'Rate the driver',
     commentPlaceholder: 'Leave a comment...',
     submitReview: 'Submit Review',
@@ -182,7 +182,7 @@ const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
 
 export default function ClientApp({ token: propToken, user: propUser, onLogout }: { token: string, user: any, onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState('home');
-  const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<string | null>(null);
   const [cart, setCart] = useState<{ itemId: string; quantity: number; price: number; name: string }[]>([]);
   
   // Features State
@@ -194,7 +194,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
   const [deliveryMode, setDeliveryMode] = useState<'now' | 'scheduled'>('now');
 
   // API Data State
-  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [sellers, setSellers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -239,10 +239,10 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [reviewModalOrder, setReviewModalOrder] = useState<any | null>(null);
-  const [reviewData, setReviewData] = useState({ restaurantRating: 5, driverRating: 5, comment: '' });
+  const [reviewData, setReviewData] = useState({ sellerRating: 5, driverRating: 5, comment: '' });
 
   const t = TRANSLATIONS[lang];
-  const restaurant = restaurants.find(r => r.id === selectedRestaurant);
+  const seller = sellers.find(r => r.id === selectedSeller);
 
   // Fetch Data on Mount or Token Change
   useEffect(() => {
@@ -256,11 +256,11 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const resRes = await fetchWithTimeout('/api/restaurants');
+        const resRes = await fetchWithTimeout('/api/sellers');
         if (resRes.ok) {
-          setRestaurants(await (resRes as any).safeJson());
+          setSellers(await (resRes as any).safeJson());
         } else {
-          throw new Error(`Server returned ${resRes.status} for /api/restaurants`);
+          throw new Error(`Server returned ${resRes.status} for /api/sellers`);
         }
 
         if (token) {
@@ -317,8 +317,8 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
       } else {
         localStorage.setItem('token', data.token);
         setToken(data.token);
-        if (data.user?.role === 'restaurant' || data.user?.role === 'admin') {
-          window.location.href = '/restaurant';
+        if (data.user?.role === 'seller' || data.user?.role === 'admin') {
+          window.location.href = '/vendeur';
         } else if (data.user?.role === 'driver') {
           window.location.href = '/driver';
         }
@@ -364,7 +364,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          restaurantId: selectedRestaurant,
+          sellerId: selectedSeller,
           items: cart,
           total: cartTotal + tipAmount,
           address: savedAddresses.find(a => a.id === selectedAddressId)?.address,
@@ -386,7 +386,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
   };
 
   const handleReorder = (order: any) => {
-    setSelectedRestaurant(order.restaurantId);
+    setSelectedSeller(order.sellerId);
     setCart(order.items.map((item: any) => ({
       itemId: item.itemId || item.name,
       quantity: item.quantity,
@@ -429,7 +429,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const discountAmount = cartSubtotal * discount;
-  const deliveryFee = restaurant?.deliveryFee || 0;
+  const deliveryFee = seller?.deliveryFee || 0;
   const cartTotal = cartSubtotal - discountAmount + deliveryFee;
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -437,7 +437,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
     orderFilter === 'active' ? order.status === 'PENDING' || order.status === 'IN_TRANSIT' : order.status === 'DELIVERED'
   );
 
-  const filteredRestaurants = restaurants.filter(r => {
+  const filteredSellers = sellers.filter(r => {
     const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       r.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
       r.menu?.some((item: any) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -449,11 +449,11 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
     return matchesSearch && matchesDietary && matchesStoreType && matchesFavorites;
   });
 
-  const toggleFavorite = (restaurantId: string) => {
+  const toggleFavorite = (sellerId: string) => {
     setFavorites(prev => 
-      prev.includes(restaurantId) 
-        ? prev.filter(id => id !== restaurantId) 
-        : [...prev, restaurantId]
+      prev.includes(sellerId) 
+        ? prev.filter(id => id !== sellerId) 
+        : [...prev, sellerId]
     );
   };
 
@@ -529,7 +529,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
       )}>
         
         <AnimatePresence mode="wait">
-          {activeTab === 'home' && !selectedRestaurant && (
+          {activeTab === 'home' && !selectedSeller && (
             <motion.div 
               key="home"
               initial={{ opacity: 0, x: -20 }}
@@ -732,61 +732,61 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                 </div>
               </div>
 
-              {/* Restaurant List */}
+              {/* Seller List */}
               <div className="px-4 pb-12">
                 <h2 className="text-2xl font-black mb-6">{t.featured}</h2>
                 <div className="flex flex-col gap-8">
-                  {filteredRestaurants
+                  {filteredSellers
                     .sort((a, b) => {
                       if (sortBy === 'rating') return b.rating - a.rating;
                       if (sortBy === 'time') return parseInt(a.deliveryTime) - parseInt(b.deliveryTime);
                       return 0;
                     })
-                    .map(restaurant => (
+                    .map(sellerItem => (
                     <div 
-                      key={restaurant.id} 
+                      key={sellerItem.id} 
                       className="cursor-pointer group"
                       onClick={() => {
-                        setSelectedRestaurant(restaurant.id);
-                        setCart([]); // Clear cart when changing restaurant (Multi-restaurant logic constraint)
+                        setSelectedSeller(sellerItem.id);
+                        setCart([]); // Clear cart when changing seller (Multi-seller logic constraint)
                         setDiscount(0);
                         setPromoCode('');
                       }}
                     >
                       <div className="relative h-48 rounded-3xl overflow-hidden mb-3">
                         <img 
-                          src={restaurant.image} 
-                          alt={restaurant.name} 
+                          src={sellerItem.image} 
+                          alt={sellerItem.name} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           referrerPolicy="no-referrer"
                         />
                         <div className={cn("absolute top-4 right-4 bg-white dark:bg-gray-900 px-2 py-1 rounded-lg shadow-lg flex items-center gap-1", isDark ? "text-white" : "text-black")}>
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs font-bold">{restaurant.rating}</span>
+                          <span className="text-xs font-bold">{sellerItem.rating}</span>
                         </div>
-                        {restaurant.type && restaurant.type !== 'restaurant' && (
+                        {sellerItem.type && sellerItem.type !== 'restaurant' && (
                           <div className={cn(
                             "absolute top-4 right-20 px-3 py-1 rounded-lg shadow-lg flex items-center gap-1 text-white text-[10px] font-black uppercase tracking-widest",
-                            STORE_TYPES.find(t => t.id === restaurant.type)?.color || 'bg-gray-500'
+                            STORE_TYPES.find(t => t.id === sellerItem.type)?.color || 'bg-gray-500'
                           )}>
-                            {STORE_TYPES.find(t => t.id === restaurant.type)?.name}
+                            {STORE_TYPES.find(t => t.id === sellerItem.type)?.name}
                           </div>
                         )}
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleFavorite(restaurant.id);
+                            toggleFavorite(sellerItem.id);
                           }}
                           className={cn(
                             "absolute top-4 left-4 p-2 rounded-full shadow-lg backdrop-blur-md transition-transform active:scale-90",
-                            favorites.includes(restaurant.id) ? "bg-red-500 text-white" : "bg-white/80 text-gray-800 dark:bg-gray-800/80 dark:text-white"
+                            favorites.includes(sellerItem.id) ? "bg-red-500 text-white" : "bg-white/80 text-gray-800 dark:bg-gray-800/80 dark:text-white"
                           )}
                         >
-                          <svg className={cn("w-4 h-4", favorites.includes(restaurant.id) ? "fill-current" : "fill-none")} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                          <svg className={cn("w-4 h-4", favorites.includes(sellerItem.id) ? "fill-current" : "fill-none")} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.84-8.84 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                           </svg>
                         </button>
-                        {restaurant.deliveryFee === 0 && (
+                        {sellerItem.deliveryFee === 0 && (
                           <div className="absolute bottom-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                             Livraison Offerte
                           </div>
@@ -794,16 +794,16 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                       </div>
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="text-lg font-black">{restaurant.name}</h3>
-                          <p className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>{restaurant.tags.join(' • ')}</p>
+                          <h3 className="text-lg font-black">{sellerItem.name}</h3>
+                          <p className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>{sellerItem.tags.join(' • ')}</p>
                         </div>
                         <div className={cn("px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1", isDark ? "bg-gray-800 text-white" : "bg-gray-100 text-black")}>
                           <Clock className="w-3 h-3" />
-                          {restaurant.deliveryTime}
+                          {sellerItem.deliveryTime}
                         </div>
                       </div>
                       <p className={cn("text-sm mt-1 font-medium", isDark ? "text-gray-400" : "text-gray-500")}>
-                        {restaurant.deliveryFee === 0 ? t.free : `${restaurant.deliveryFee.toFixed(2)} €`} de frais de livraison
+                        {sellerItem.deliveryFee === 0 ? t.free : `${sellerItem.deliveryFee.toFixed(2)} €`} de frais de livraison
                       </p>
                     </div>
                   ))}
@@ -812,19 +812,19 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
             </motion.div>
           )}
 
-          {activeTab === 'home' && selectedRestaurant && (
+          {activeTab === 'home' && selectedSeller && (
             <motion.div 
-              key="restaurant"
+              key="seller"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               className={cn("flex-1 overflow-y-auto pb-24 transition-colors", isDark ? "bg-gray-950" : "bg-gray-50")}
             >
-              {/* Restaurant Header */}
+              {/* Seller Header */}
               <div className="relative h-64">
-                <img src={restaurant?.image} alt={restaurant?.name} className="w-full h-full object-cover" />
+                <img src={seller?.image} alt={seller?.name} className="w-full h-full object-cover" />
                 <button 
-                  onClick={() => setSelectedRestaurant(null)}
+                  onClick={() => setSelectedSeller(null)}
                   className={cn("absolute top-6 left-4 w-10 h-10 rounded-full flex items-center justify-center shadow-md", isDark ? "bg-gray-900 text-white" : "bg-white text-black")}
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -832,23 +832,23 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
               </div>
               
               <div className={cn("-mt-6 relative rounded-t-3xl px-4 pt-6 pb-4 shadow-sm transition-colors", isDark ? "bg-gray-900" : "bg-white")}>
-                <h1 className="text-3xl font-bold">{restaurant?.name}</h1>
+                <h1 className="text-3xl font-bold">{seller?.name}</h1>
                 <div className={cn("flex items-center gap-4 mt-2 text-sm", isDark ? "text-gray-400" : "text-gray-600")}>
                   <span className={cn("flex items-center gap-1 font-medium", isDark ? "text-white" : "text-black")}>
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    {restaurant?.rating} (500+ avis)
+                    {seller?.rating} (500+ avis)
                   </span>
                   <span>•</span>
-                  <span>{restaurant?.deliveryTime}</span>
+                  <span>{seller?.deliveryTime}</span>
                 </div>
-                <p className={cn("text-sm mt-2", isDark ? "text-gray-400" : "text-gray-500")}>{restaurant?.tags.join(' • ')}</p>
+                <p className={cn("text-sm mt-2", isDark ? "text-gray-400" : "text-gray-500")}>{seller?.tags.join(' • ')}</p>
               </div>
 
               {/* Menu */}
               <div className="px-4 py-6">
                 <h2 className="text-xl font-black mb-6">{t.popular}</h2>
                 <div className="flex flex-col gap-6">
-                  {restaurant?.menu.filter((i: any) => i.available !== false).map((item: any) => {
+                  {seller?.menu.filter((i: any) => i.available !== false).map((item: any) => {
                     const cartItem = cart.find(i => i.itemId === item.id);
                     return (
                       <div 
@@ -953,9 +953,9 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <img src={order.image} alt={order.restaurantName} className="w-12 h-12 rounded-xl object-cover" />
+                          <img src={order.image} alt={order.sellerName} className="w-12 h-12 rounded-xl object-cover" />
                           <div>
-                            <h3 className="font-bold">{order.restaurantName}</h3>
+                            <h3 className="font-bold">{order.sellerName}</h3>
                             <p className={cn("text-xs", isDark ? "text-gray-400" : "text-gray-500")}>{order.date} • {order.total.toFixed(2)} €</p>
                           </div>
                         </div>
@@ -1171,13 +1171,13 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                   </div>
                 </div>
 
-                {/* Restaurant Dashboard Link */}
-                {(profileData as any).role === 'restaurant' || (profileData as any).role === 'admin' ? (
+                {/* Seller Dashboard Link */}
+                {(profileData as any).role === 'seller' || (profileData as any).role === 'admin' ? (
                   <div className={cn("p-4 rounded-2xl shadow-sm transition-colors mb-6", isDark ? "bg-gray-900" : "bg-white")}>
                     <h3 className="font-bold text-lg mb-2">Espace Professionnel</h3>
-                    <p className="text-sm text-gray-500 mb-4">Gérez vos commandes et votre restaurant.</p>
+                    <p className="text-sm text-gray-500 mb-4">Gérez vos commandes et votre commerce.</p>
                     <a 
-                      href="/restaurant"
+                      href="/vendeur"
                       className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors bg-orange-500 text-white hover:bg-orange-600"
                     >
                       Accéder au Dashboard
@@ -1283,14 +1283,14 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                     <h3 className={cn("text-sm font-bold mb-4", isDark ? "text-gray-400" : "text-gray-500")}>
                       {t.resultsFor} "{searchQuery}"
                     </h3>
-                    {filteredRestaurants.length > 0 ? (
+                    {filteredSellers.length > 0 ? (
                       <div className="flex flex-col gap-4">
-                        {filteredRestaurants.map(restaurant => (
+                        {filteredSellers.map(sellerItem => (
                           <div 
-                            key={restaurant.id} 
+                            key={sellerItem.id} 
                             className={cn("p-3 rounded-2xl flex gap-4 cursor-pointer shadow-sm transition-colors", isDark ? "bg-gray-900" : "bg-white")}
                             onClick={() => {
-                              setSelectedRestaurant(restaurant.id);
+                              setSelectedSeller(sellerItem.id);
                               setActiveTab('home');
                               setCart([]);
                               setDiscount(0);
@@ -1298,16 +1298,16 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                               setSearchQuery('');
                             }}
                           >
-                            <img src={restaurant.image} alt={restaurant.name} className="w-20 h-20 rounded-xl object-cover" />
+                            <img src={sellerItem.image} alt={sellerItem.name} className="w-20 h-20 rounded-xl object-cover" />
                             <div className="flex-1 py-1">
-                              <h4 className="font-bold">{restaurant.name}</h4>
-                              <p className={cn("text-xs mt-1", isDark ? "text-gray-400" : "text-gray-500")}>{restaurant.tags.join(' • ')}</p>
+                              <h4 className="font-bold">{sellerItem.name}</h4>
+                              <p className={cn("text-xs mt-1", isDark ? "text-gray-400" : "text-gray-500")}>{sellerItem.tags.join(' • ')}</p>
                               <div className="flex items-center gap-3 mt-2">
                                 <span className={cn("text-xs font-bold flex items-center gap-1", isDark ? "text-white" : "text-black")}>
-                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> {restaurant.rating}
+                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> {sellerItem.rating}
                                 </span>
                                 <span className={cn("text-xs flex items-center gap-1", isDark ? "text-gray-400" : "text-gray-500")}>
-                                  <Clock className="w-3 h-3" /> {restaurant.deliveryTime}
+                                  <Clock className="w-3 h-3" /> {sellerItem.deliveryTime}
                                 </span>
                               </div>
                             </div>
@@ -1395,7 +1395,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                 <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6" />
                 
                 <h2 className="text-2xl font-bold mb-1">{t.driverOnTheWay}</h2>
-                <p className={cn("text-sm mb-6", isDark ? "text-gray-400" : "text-gray-500")}>{trackingOrder.restaurantName}</p>
+                <p className={cn("text-sm mb-6", isDark ? "text-gray-400" : "text-gray-500")}>{trackingOrder.sellerName}</p>
 
                 {/* Driver Info */}
                 <div className={cn("flex items-center justify-between mb-8 p-4 rounded-2xl", isDark ? "bg-gray-800" : "bg-gray-50")}>
@@ -1448,7 +1448,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
 
         {/* Floating Cart Button */}
         <AnimatePresence>
-          {cartItemsCount > 0 && selectedRestaurant && !isCartOpen && activeTab === 'home' && (
+          {cartItemsCount > 0 && selectedSeller && !isCartOpen && activeTab === 'home' && (
             <motion.div 
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -1743,10 +1743,10 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                       {[1, 2, 3, 4, 5].map(star => (
                         <button 
                           key={star} 
-                          onClick={() => setReviewData(prev => ({ ...prev, restaurantRating: star }))}
+                          onClick={() => setReviewData(prev => ({ ...prev, sellerRating: star }))}
                           className="transition-transform active:scale-90"
                         >
-                          <Star className={cn("w-8 h-8", star <= reviewData.restaurantRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300 dark:text-gray-700")} />
+                          <Star className={cn("w-8 h-8", star <= reviewData.sellerRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300 dark:text-gray-700")} />
                         </button>
                       ))}
                     </div>
@@ -1801,7 +1801,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
               key={tab.id}
               onClick={() => {
                 setActiveTab(tab.id);
-                if (tab.id !== 'home') setSelectedRestaurant(null);
+                if (tab.id !== 'home') setSelectedSeller(null);
               }}
               className={cn(
                 "flex flex-col items-center gap-1 p-2 transition-colors",

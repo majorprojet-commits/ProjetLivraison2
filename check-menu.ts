@@ -1,14 +1,14 @@
 import { connectDB } from './server/db/mongoose.js';
-import { RestaurantModel } from './server/db/models/Restaurant.js';
+import { SellerModel } from './server/db/models/Seller.js';
 import mongoose from 'mongoose';
 
 async function checkMenu() {
   await connectDB();
-  const restaurant = await RestaurantModel.findById('r1');
-  if (restaurant) {
-    console.log('Restaurant r1 menu:', JSON.stringify(restaurant.menu, null, 2));
+  const seller = await SellerModel.findById('r1');
+  if (seller) {
+    console.log('Seller r1 menu:', JSON.stringify(seller.menu, null, 2));
   } else {
-    console.log('Restaurant r1 not found');
+    console.log('Seller r1 not found');
   }
   process.exit(0);
 }

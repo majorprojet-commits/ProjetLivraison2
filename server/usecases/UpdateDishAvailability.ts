@@ -1,15 +1,15 @@
-import { IRestaurantRepo } from '../core/repos/IRestaurantRepo.js';
+import { ISellerRepo } from '../core/repos/ISellerRepo.js';
 
 export class UpdateDishAvailability {
-  constructor(private repo: IRestaurantRepo) {}
-  async execute(restaurantId: string, dishId: string, available: boolean) {
-    const restaurant = await this.repo.findById(restaurantId);
-    if (!restaurant) throw new Error('Restaurant not found');
+  constructor(private repo: ISellerRepo) {}
+  async execute(sellerId: string, dishId: string, available: boolean) {
+    const seller = await this.repo.findById(sellerId);
+    if (!seller) throw new Error('Seller not found');
 
-    const updatedMenu = (restaurant.menu || []).map((item: any) => 
+    const updatedMenu = (seller.menu || []).map((item: any) => 
       item.id === dishId ? { ...item, available } : item
     );
 
-    await this.repo.updateMenu(restaurantId, updatedMenu);
+    await this.repo.updateMenu(sellerId, updatedMenu);
   }
 }

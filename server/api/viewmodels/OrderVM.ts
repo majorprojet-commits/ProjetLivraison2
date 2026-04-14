@@ -4,7 +4,7 @@ export class OrderVM {
     return { 
       id: o.id, 
       userId: o.userId,
-      restaurantId: o.restaurantId, 
+      sellerId: o.sellerId, 
       total: o.total, 
       status: o.status, 
       date: o.createdAt, 

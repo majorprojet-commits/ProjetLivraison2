@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.js';
-import { RestaurantModel } from '../../db/models/Restaurant.js';
+import { SellerModel } from '../../db/models/Seller.js';
 import { UserModel } from '../../db/models/User.js';
 import { OrderModel } from '../../db/models/Order.js';
 import { GlobalConfigModel } from '../../db/models/GlobalConfig.js';
@@ -15,7 +15,7 @@ export class AdminCtrl {
         { $group: { _id: null, total: { $sum: '$total' } } }
       ]);
 
-      const activeRestaurants = await RestaurantModel.countDocuments({ status: 'active' });
+      const activeSellers = await SellerModel.countDocuments({ status: 'active' });
       const totalOrders = await OrderModel.countDocuments();
       
       const config = await GlobalConfigModel.findOne({ key: 'commission_rate' });
@@ -25,7 +25,7 @@ export class AdminCtrl {
 
       res.json({
         totalRevenue: totalRevenue[0]?.total || 0,
-        activeRestaurants,
+        activeSellers,
         totalOrders,
         commissionRevenue,
         revenueHistory: [
@@ -37,12 +37,12 @@ export class AdminCtrl {
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
 
-  updateRestaurantStatus = async (req: AuthRequest, res: Response) => {
+  updateSellerStatus = async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      const rest = await RestaurantModel.findByIdAndUpdate(id, { status }, { new: true });
-      if (!rest) return res.status(404).json({ error: 'Restaurant not found' });
+      const rest = await SellerModel.findByIdAndUpdate(id, { status }, { new: true });
+      if (!rest) return res.status(404).json({ error: 'Seller not found' });
       res.json(rest);
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
@@ -104,7 +104,7 @@ export class AdminCtrl {
       const disputes = await DisputeModel.find()
         .populate('orderId')
         .populate('userId', 'name email')
-        .populate('restaurantId', 'name');
+        .populate('sellerId', 'name');
       res.json(disputes);
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
