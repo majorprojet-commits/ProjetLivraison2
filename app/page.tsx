@@ -90,7 +90,7 @@ export default function Home() {
 
       {/* Debug Info */}
       <div className="fixed bottom-4 right-4 bg-black/80 text-white text-[10px] p-2 rounded-lg font-mono z-[200] pointer-events-none">
-        VIEW: {view.toUpperCase()} | NEXT_JS: 15.0.0 | REACT: 19.0.0
+        VIEW: {view.toUpperCase()} | NEXT_JS: 15.1.0 | REACT: 19.0.0
       </div>
     </div>
   );

@@ -36,19 +36,17 @@ export default function ProfileScreen() {
   );
 }
 
-function ProfileItem({ icon: Icon, label }: { icon: any, label: string }) {
-  return (
-    <TouchableOpacity style={styles.item}>
-      <View style={styles.itemLeft}>
-        <View style={styles.iconBox}>
-          <Icon size={20} color="#64748b" />
-        </View>
-        <Text style={styles.itemLabel}>{label}</Text>
+const ProfileItem = ({ icon: Icon, label }: { icon: any; label: string }) => (
+  <TouchableOpacity style={styles.item}>
+    <View style={styles.itemLeft}>
+      <View style={styles.iconBox}>
+        <Icon size={20} color="#64748b" />
       </View>
-      <ChevronRight size={20} color="#cbd5e1" />
-    </TouchableOpacity>
-  );
-}
+      <Text style={styles.itemLabel}>{label}</Text>
+    </View>
+    <ChevronRight size={20} color="#cbd5e1" />
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
