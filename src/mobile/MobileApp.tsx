@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Platform } from 'react-native';
-import { Home, ShoppingBag, User, Settings, Package, Navigation, LucideIcon, Bell } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Platform, Alert } from 'react-native';
+import { Home, ShoppingBag, User, Settings, Package, Navigation, LucideIcon, Bell, List, ShoppingCart } from 'lucide-react-native';
 import { io } from 'socket.io-client';
 
 import ClientHome from './screens/ClientHome';
@@ -8,14 +8,19 @@ import SellerHome from './screens/SellerHome';
 import DriverHome from './screens/DriverHome';
 import RestaurantDetail from './screens/RestaurantDetail';
 import ProfileScreen from './screens/ProfileScreen';
+import CartScreen from './screens/CartScreen';
+import OrdersScreen from './screens/OrdersScreen';
 import { Seller } from './types';
 
 type AppType = 'client' | 'seller' | 'driver' | 'profile';
+type ClientView = 'home' | 'restaurant' | 'cart' | 'orders';
 
 export default function MobileApp() {
   const [activeApp, setActiveApp] = useState<AppType>('client');
+  const [clientView, setClientView] = useState<ClientView>('home');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Seller | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [cart, setCart] = useState<any[]>([]);
 
   useEffect(() => {
     const socket = io();
@@ -23,6 +28,7 @@ export default function MobileApp() {
     // Join relevant rooms
     socket.emit('join', 'drivers');
     socket.emit('join', 'seller_r1'); // Mock seller room
+    socket.emit('join', 'admin');
 
     socket.on('newOrder', (order) => {
       setNotifications(prev => [{ id: Date.now(), message: `Nouvelle commande #${order.id.slice(-4).toUpperCase()}` }, ...prev]);
@@ -44,20 +50,100 @@ export default function MobileApp() {
   const handleAppChange = (app: AppType) => {
     console.log(`[MobileApp] Switching to: ${app}`);
     setActiveApp(app);
-    setSelectedRestaurant(null); // Reset navigation when switching apps
+    if (app === 'client') setClientView('home');
+    setSelectedRestaurant(null);
+  };
+
+  const addToCart = (item: any, choices?: Record<string, any>) => {
+    const cartItem = {
+      ...item,
+      cartId: Math.random().toString(36).substr(2, 9),
+      selectedChoices: choices || {},
+      finalPrice: item.price + Object.values(choices || {}).reduce((sum, choice) => sum + (choice.priceExtra || 0), 0)
+    };
+    setCart([...cart, cartItem]);
+  };
+
+  const removeFromCart = (cartId: string) => {
+    setCart(cart.filter(item => item.cartId !== cartId));
+  };
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    const total = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+    
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer dev-token'
+        },
+        body: JSON.stringify({
+          sellerId: selectedRestaurant?._id || selectedRestaurant?.id || 'r1',
+          items: cart,
+          total: total,
+          userId: 'dev-user'
+        })
+      });
+
+      if (response.ok) {
+        setCart([]);
+        setClientView('orders');
+      } else {
+        alert('Erreur lors de la commande');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Erreur réseau');
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer dev-token'
+        },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+      if (response.ok) {
+        // Refresh orders will happen via polling or manual refresh in OrdersScreen
+      }
+    } catch (error) {
+      console.error('Cancel order error:', error);
+    }
   };
 
   const renderClientContent = () => {
-    if (selectedRestaurant) {
-      return (
-        <RestaurantDetail 
-          restaurant={selectedRestaurant} 
-          onBack={() => setSelectedRestaurant(null)}
-          onAddToCart={(item) => console.log('Added to cart:', item)}
-        />
-      );
+    switch (clientView) {
+      case 'restaurant':
+        return selectedRestaurant ? (
+          <RestaurantDetail 
+            restaurant={selectedRestaurant} 
+            onBack={() => setClientView('home')}
+            cart={cart}
+            onAddToCart={addToCart}
+            onViewCart={() => setClientView('cart')}
+          />
+        ) : null;
+      case 'cart':
+        return (
+          <CartScreen 
+            cart={cart} 
+            onUpdateQuantity={() => {}} 
+            onRemove={removeFromCart} 
+            onCheckout={handleCheckout}
+            onBack={() => setClientView('restaurant')}
+          />
+        );
+      case 'orders':
+        return <OrdersScreen onCancelOrder={handleCancelOrder} />;
+      default:
+        return <ClientHome onPressRestaurant={(seller) => { setSelectedRestaurant(seller); setClientView('restaurant'); }} />;
     }
-    return <ClientHome onPressRestaurant={(seller) => setSelectedRestaurant(seller)} />;
   };
 
   return (
@@ -94,10 +180,21 @@ export default function MobileApp() {
       </View>
 
       <View style={styles.tabBar}>
-        <TabItem active={activeApp === 'client'} label="Client" icon={ShoppingBag} onPress={() => handleAppChange('client')} />
-        <TabItem active={activeApp === 'seller'} label="Vendeur" icon={Package} onPress={() => handleAppChange('seller')} />
-        <TabItem active={activeApp === 'driver'} label="Livreur" icon={Navigation} onPress={() => handleAppChange('driver')} />
-        <TabItem active={activeApp === 'profile'} label="Profil" icon={User} onPress={() => handleAppChange('profile')} />
+        {activeApp === 'client' ? (
+          <>
+            <TabItem active={clientView === 'home' || clientView === 'restaurant'} label="Accueil" icon={Home} onPress={() => setClientView('home')} />
+            <TabItem active={clientView === 'orders'} label="Commandes" icon={List} onPress={() => setClientView('orders')} />
+            <TabItem active={clientView === 'cart'} label="Panier" icon={ShoppingCart} onPress={() => setClientView('cart')} badge={cart.length} />
+            <TabItem active={false} label="Rôles" icon={Settings} onPress={() => setActiveApp('seller')} />
+          </>
+        ) : (
+          <>
+            <TabItem active={activeApp === 'seller'} label="Vendeur" icon={Package} onPress={() => handleAppChange('seller')} />
+            <TabItem active={activeApp === 'driver'} label="Livreur" icon={Navigation} onPress={() => handleAppChange('driver')} />
+            <TabItem active={activeApp === 'profile'} label="Profil" icon={User} onPress={() => handleAppChange('profile')} />
+            <TabItem active={false} label="Client" icon={ShoppingBag} onPress={() => handleAppChange('client')} />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -108,12 +205,20 @@ interface TabItemProps {
   label: string;
   icon: LucideIcon;
   onPress: () => void;
+  badge?: number;
 }
 
-function TabItem({ active, label, icon: Icon, onPress }: TabItemProps) {
+function TabItem({ active, label, icon: Icon, onPress, badge }: TabItemProps) {
   return (
     <TouchableOpacity style={styles.tabItem} onPress={onPress}>
-      <Icon size={24} color={active ? '#8b5cf6' : '#94a3b8'} />
+      <View style={styles.iconContainer}>
+        <Icon size={20} color={active ? '#8b5cf6' : '#94a3b8'} />
+        {badge !== undefined && badge > 0 && (
+          <View style={styles.tabBadge}>
+            <Text style={styles.tabBadgeText}>{badge}</Text>
+          </View>
+        )}
+      </View>
       <Text style={[styles.tabLabel, { color: active ? '#8b5cf6' : '#94a3b8' }]}>{label}</Text>
     </TouchableOpacity>
   );
@@ -138,7 +243,10 @@ const styles = StyleSheet.create({
   statVal: { fontSize: 20, fontWeight: '900', color: '#9333ea' },
   btn: { backgroundColor: '#9333ea', padding: 8, borderRadius: 8, marginTop: 8, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: 'bold' },
-  tabBar: { flexDirection: 'row', height: 60, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e2e8f0' },
-  tabItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  tabLabel: { fontSize: 10, fontWeight: 'bold', marginTop: 4 }
+  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingBottom: Platform.OS === 'ios' ? 20 : 10, paddingTop: 10 },
+  tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  iconContainer: { position: 'relative', marginBottom: 4 },
+  tabLabel: { fontSize: 10, fontWeight: '800' },
+  tabBadge: { position: 'absolute', top: -6, right: -10, backgroundColor: '#ef4444', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4, borderWeight: 2, borderColor: '#fff' },
+  tabBadgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold' }
 });

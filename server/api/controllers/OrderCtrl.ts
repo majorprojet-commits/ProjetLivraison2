@@ -69,11 +69,29 @@ export class OrderCtrl {
 
   updateStatus = async (req: any, res: Response) => {
     try {
-      if (req.user.role !== 'seller' && req.user.role !== 'admin' && req.user.role !== 'driver') {
-        return res.status(403).json({ error: 'Forbidden' });
-      }
       const orderId = req.params.id;
       const { status, ...extraData } = req.body;
+      
+      // Fetch order to check ownership if user is a client
+      const order = await this.getOrders.execute().then(orders => orders.find(o => o.id === orderId));
+      if (!order) return res.status(404).json({ error: 'Order not found' });
+
+      const isOwner = req.user.id === order.userId || req.user.role === 'admin';
+      const isSeller = req.user.role === 'seller' && req.user.sellerId === order.sellerId;
+      const isDriver = req.user.role === 'driver' && req.user.driverId === order.driverId;
+
+      if (!isOwner && !isSeller && !isDriver && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      // Client can only cancel if pending
+      if (req.user.role === 'client' && status !== 'cancelled') {
+        return res.status(403).json({ error: 'Clients can only cancel orders' });
+      }
+      if (req.user.role === 'client' && order.status !== 'pending') {
+        return res.status(403).json({ error: 'Cannot cancel order after it has been accepted' });
+      }
+
       const data = await this.updateOrderStatus.execute(orderId, status, extraData);
       if (!data) return res.status(404).json({ error: 'Order not found' });
       

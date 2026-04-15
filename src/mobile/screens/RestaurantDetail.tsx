@@ -1,37 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { ArrowLeft, Star, Clock, Plus, ShoppingCart, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, Star, Plus, ShoppingCart, XCircle } from 'lucide-react-native';
 import { Seller } from '../types';
 
 interface RestaurantDetailProps {
   restaurant: Seller;
   onBack: () => void;
+  cart: any[];
+  onAddToCart: (item: any, choices?: Record<string, any>) => void;
+  onViewCart: () => void;
 }
 
-export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetailProps) {
-  const [cart, setCart] = useState<any[]>([]);
-  const [isOrdering, setIsOrdering] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
+export default function RestaurantDetail({ restaurant, onBack, cart, onAddToCart, onViewCart }: RestaurantDetailProps) {
   const [customizingItem, setCustomizingItem] = useState<any>(null);
   const [selectedChoices, setSelectedChoices] = useState<Record<string, any>>({});
-
-  const addToCart = (item: any, choices?: Record<string, any>) => {
-    const cartItem = {
-      ...item,
-      cartId: Math.random().toString(36).substr(2, 9),
-      selectedChoices: choices || {},
-      finalPrice: item.price + Object.values(choices || {}).reduce((sum, choice) => sum + (choice.priceExtra || 0), 0)
-    };
-    setCart([...cart, cartItem]);
-    setCustomizingItem(null);
-    setSelectedChoices({});
-  };
 
   const handleItemPress = (item: any) => {
     if (item.available === false) return;
     if (item.options && item.options.length > 0) {
       setCustomizingItem(item);
-      // Initialize required options
       const initialChoices: Record<string, any> = {};
       item.options.forEach((opt: any) => {
         if (opt.required && opt.choices.length > 0) {
@@ -40,7 +27,7 @@ export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetai
       });
       setSelectedChoices(initialChoices);
     } else {
-      addToCart(item);
+      onAddToCart(item);
     }
   };
 
@@ -60,55 +47,6 @@ export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetai
   };
 
   const total = cart.reduce((sum, item) => sum + item.finalPrice, 0);
-
-  const handlePlaceOrder = async () => {
-    if (cart.length === 0) return;
-    
-    setIsOrdering(true);
-    try {
-      // Mocking a real API call to /api/orders
-      // In a real app, we would use fetch() with a token
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer dev-token' // Using dev token for MVP
-        },
-        body: JSON.stringify({
-          sellerId: restaurant._id || restaurant.id, // Use _id if available, fallback to id
-          items: cart,
-          total: total
-        })
-      });
-
-      if (response.ok) {
-        setOrderSuccess(true);
-        setCart([]);
-        setTimeout(() => {
-          setOrderSuccess(false);
-          onBack();
-        }, 3000);
-      } else {
-        const errData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        alert(`Erreur lors de la commande: ${errData.details || errData.error}`);
-      }
-    } catch (error) {
-      console.error('Order error:', error);
-      alert('Erreur réseau.');
-    } finally {
-      setIsOrdering(false);
-    }
-  };
-
-  if (orderSuccess) {
-    return (
-      <View style={styles.successContainer}>
-        <CheckCircle2 size={80} color="#22c55e" />
-        <Text style={styles.successTitle}>Commande validée !</Text>
-        <Text style={styles.successSub}>Votre repas est en cours de préparation.</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -170,7 +108,7 @@ export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetai
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{customizingItem.name}</Text>
               <TouchableOpacity onPress={() => setCustomizingItem(null)}>
-                <Text style={styles.closeText}>Annuler</Text>
+                <XCircle size={24} color="#94a3b8" />
               </TouchableOpacity>
             </View>
             
@@ -207,7 +145,11 @@ export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetai
 
             <TouchableOpacity 
               style={styles.confirmBtn}
-              onPress={() => addToCart(customizingItem, selectedChoices)}
+              onPress={() => {
+                onAddToCart(customizingItem, selectedChoices);
+                setCustomizingItem(null);
+                setSelectedChoices({});
+              }}
             >
               <Text style={styles.confirmBtnText}>Ajouter au panier</Text>
             </TouchableOpacity>
@@ -218,18 +160,11 @@ export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetai
       {cart.length > 0 && (
         <TouchableOpacity 
           style={styles.cartBar} 
-          onPress={handlePlaceOrder}
-          disabled={isOrdering}
+          onPress={onViewCart}
         >
           <View style={styles.cartInfo}>
-            {isOrdering ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <ShoppingCart size={20} color="#fff" />
-            )}
-            <Text style={styles.cartText}>
-              {isOrdering ? 'Traitement...' : `Commander (${cart.length})`}
-            </Text>
+            <ShoppingCart size={20} color="#fff" />
+            <Text style={styles.cartText}>Voir le panier ({cart.length})</Text>
           </View>
           <Text style={styles.cartTotal}>{total.toFixed(2)} €</Text>
         </TouchableOpacity>
@@ -240,9 +175,6 @@ export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetai
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  successContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 40 },
-  successTitle: { fontSize: 28, fontWeight: '900', marginTop: 24, textAlign: 'center' },
-  successSub: { fontSize: 16, color: '#64748b', textAlign: 'center', marginTop: 8 },
   header: { height: 200, position: 'relative' },
   heroImage: { width: '100%', height: '100%' },
   backBtn: { position: 'absolute', top: 40, left: 20, zIndex: 10, backgroundColor: '#fff', padding: 8, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 },
@@ -267,11 +199,10 @@ const styles = StyleSheet.create({
   cartInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cartText: { color: '#fff', fontWeight: '900', fontSize: 16 },
   cartTotal: { color: '#fff', fontWeight: '900', fontSize: 16 },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 100 },
   modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { fontSize: 20, fontWeight: '900' },
-  closeText: { color: '#ef4444', fontWeight: 'bold' },
   optionsList: { marginBottom: 24 },
   optionSection: { marginBottom: 24 },
   optionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
