@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@source "../src/**/*.{ts,tsx}";
+
 @theme {
   --color-violet-50: #f5f3ff;
   --color-violet-100: #ede9fe;
