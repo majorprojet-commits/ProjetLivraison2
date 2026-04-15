@@ -19,12 +19,18 @@ interface SellerDashboardProps {
   sellerId?: string;
   token?: string;
   onLogout?: () => void;
+  externalNotifications?: any[];
+  onClearNotifications?: () => void;
+  socketConnected?: boolean;
 }
 
 export default function SellerDashboard({ 
   sellerId = 'r1', 
   token = 'dev-token',
-  onLogout = () => {} 
+  onLogout = () => {},
+  externalNotifications = [],
+  onClearNotifications = () => {},
+  socketConnected = false
 }: SellerDashboardProps) {
   const [activeView, setActiveView] = useState<string>('dashboard');
   const [seller, setSeller] = useState<any>(null);
@@ -40,7 +46,6 @@ export default function SellerDashboard({
     options: []
   });
   const [imageInputType, setImageInputType] = useState<'url' | 'upload'>('url');
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
@@ -48,17 +53,10 @@ export default function SellerDashboard({
     socket.emit('join', `seller_${sellerId}`);
 
     socket.on('newOrder', (order) => {
-      console.log('[Socket] New order received:', order);
-      setOrders(prev => [order, ...prev]);
-      setNotifications(prev => [{ id: Date.now(), message: `Nouvelle commande #${order.id.slice(-4).toUpperCase()}`, orderId: order.id }, ...prev]);
-      
-      // Play sound notification if possible
-      try {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audio.play();
-      } catch (e) {
-        console.log('Audio play blocked');
-      }
+      setOrders(prev => {
+        if (prev.find(o => o.id === order.id)) return prev;
+        return [order, ...prev];
+      });
     });
 
     socket.on('orderUpdated', (order) => {
@@ -230,13 +228,20 @@ export default function SellerDashboard({
           </div>
 
           <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+              <div className={cn("w-2 h-2 rounded-full animate-pulse", socketConnected ? "bg-green-500" : "bg-red-500")} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                {socketConnected ? "Live" : "Offline"}
+              </span>
+            </div>
+
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="p-2.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all relative"
               >
                 <Bell className="w-5 h-5" />
-                {notifications.length > 0 && (
+                {externalNotifications.length > 0 && (
                   <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-600 rounded-full border-2 border-white" />
                 )}
               </button>
@@ -245,16 +250,16 @@ export default function SellerDashboard({
                 <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-top-2 duration-300">
                   <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Notifications</p>
-                    <button onClick={() => setNotifications([])} className="text-[10px] font-black uppercase tracking-widest text-orange-600">Effacer</button>
+                    <button onClick={onClearNotifications} className="text-[10px] font-black uppercase tracking-widest text-orange-600">Effacer</button>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {notifications.length === 0 ? (
+                    {externalNotifications.length === 0 ? (
                       <div className="p-8 text-center">
                         <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                         <p className="text-xs font-bold text-gray-400">Aucune notification</p>
                       </div>
                     ) : (
-                      notifications.map(n => (
+                      externalNotifications.map(n => (
                         <div key={n.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setActiveView('orders'); setShowNotifications(false); }}>
                           <p className="text-sm font-bold text-gray-900">{n.message}</p>
                           <p className="text-[10px] text-gray-400 font-bold mt-1">À l'instant</p>

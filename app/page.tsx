@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { LayoutDashboard, Smartphone, Monitor, ShoppingBag } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 // Dynamically import MobileApp to avoid SSR issues with react-native-web
 const MobileApp = dynamic(() => import('../src/mobile/MobileApp'), { 
@@ -24,6 +25,46 @@ const SellerDashboard = dynamic(() => import('../src/admin/SellerDashboard'), {
 
 export default function Home() {
   const [view, setView] = useState<'admin' | 'seller' | 'mobile'>('admin');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const sellerId = 'r1';
+
+  useEffect(() => {
+    const socket = io();
+    
+    socket.on('connect', () => {
+      console.log('[Root Socket] Connected!', socket.id);
+      setSocketConnected(true);
+      socket.emit('join', `seller_${sellerId}`);
+      socket.emit('join', 'admin');
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('[Root Socket] Connection error:', err);
+      setSocketConnected(false);
+    });
+
+    socket.on('newOrder', (order) => {
+      console.log('[Root Socket] New order received:', order);
+      setNotifications(prev => [{ 
+        id: Date.now(), 
+        message: `Nouvelle commande #${order.id.slice(-4).toUpperCase()}`, 
+        orderId: order.id,
+        type: 'new_order'
+      }, ...prev]);
+      
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play();
+      } catch (e) {
+        console.log('Audio play blocked');
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleViewChange = (newView: 'admin' | 'seller' | 'mobile') => {
     console.log(`[Switcher] Changing view to: ${newView}`);
@@ -53,6 +94,11 @@ export default function Home() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${view === 'seller' ? 'bg-white text-orange-600 shadow-md scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
           >
             <LayoutDashboard className="w-4 h-4" /> Vendeur Web
+            {notifications.length > 0 && (
+              <span className="ml-2 bg-orange-600 text-white text-[8px] px-1.5 py-0.5 rounded-full animate-bounce">
+                {notifications.length}
+              </span>
+            )}
           </button>
           <button 
             onClick={() => handleViewChange('mobile')}
@@ -74,7 +120,11 @@ export default function Home() {
           </div>
         ) : view === 'seller' ? (
           <div className="h-full overflow-auto bg-white scrollbar-hide">
-            <SellerDashboard />
+            <SellerDashboard 
+              externalNotifications={notifications} 
+              onClearNotifications={() => setNotifications([])}
+              socketConnected={socketConnected}
+            />
           </div>
         ) : (
           <div className="h-full flex items-center justify-center p-4 md:p-8 bg-gray-900 overflow-y-auto">

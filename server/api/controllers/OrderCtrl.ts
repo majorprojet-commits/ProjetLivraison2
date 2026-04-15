@@ -28,8 +28,11 @@ export class OrderCtrl {
       
       // Emit to seller room
       if (req.io) {
+        console.log(`[Socket] Emitting newOrder to seller_${data.sellerId} and admin`);
         req.io.to(`seller_${data.sellerId}`).emit('newOrder', formatted);
         req.io.to('admin').emit('newOrder', formatted);
+      } else {
+        console.warn('[Socket] req.io is missing in create order');
       }
       
       res.status(201).json(formatted);
@@ -76,10 +79,14 @@ export class OrderCtrl {
       
       const formatted = OrderVM.format(data);
       if (req.io) {
+        console.log(`[Socket] Emitting orderUpdated for order_${orderId} to rooms`);
         req.io.to(`order_${orderId}`).emit('orderUpdated', formatted);
         req.io.to(`seller_${data.sellerId}`).emit('orderUpdated', formatted);
         req.io.to('admin').emit('orderUpdated', formatted);
-        if (status === 'ready') req.io.to('drivers').emit('orderAvailable', formatted);
+        if (status === 'ready') {
+          console.log(`[Socket] Emitting orderAvailable to drivers`);
+          req.io.to('drivers').emit('orderAvailable', formatted);
+        }
       }
       
       res.json(formatted);
@@ -126,6 +133,7 @@ export class OrderCtrl {
       
       const formatted = OrderVM.format(data);
       if (req.io) {
+        console.log(`[Socket] Emitting orderUpdated (assigned) for order_${orderId}`);
         req.io.to(`order_${orderId}`).emit('orderUpdated', formatted);
         req.io.to(`seller_${data.sellerId}`).emit('orderUpdated', formatted);
         req.io.to('admin').emit('orderUpdated', formatted);
