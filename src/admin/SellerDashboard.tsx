@@ -26,45 +26,105 @@ export default function SellerDashboard({
   onLogout = () => {} 
 }: SellerDashboardProps) {
   const [activeView, setActiveView] = useState<string>('dashboard');
+  const [seller, setSeller] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const stats = {
-    revenue: 1240.50,
-    ordersCount: 48,
-    avgRating: 4.8,
-    activeOrders: 5
-  };
-
-  const revenueData = [
-    { name: 'Lun', total: 400 },
-    { name: 'Mar', total: 300 },
-    { name: 'Mer', total: 500 },
-    { name: 'Jeu', total: 280 },
-    { name: 'Ven', total: 590 },
-    { name: 'Sam', total: 800 },
-    { name: 'Dim', total: 600 },
-  ];
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newDish, setNewDish] = useState({ name: '', price: '', description: '', category: 'Plats', image: 'https://picsum.photos/seed/food/400' });
 
   useEffect(() => {
     const fetchSellerData = async () => {
       setIsRefreshing(true);
       try {
-        const response = await fetch(`/api/orders/seller/${sellerId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          setOrders(await response.json());
+        const [sellerRes, ordersRes] = await Promise.all([
+          fetch(`/api/sellers`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`/api/orders/seller/${sellerId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+
+        if (sellerRes.ok) {
+          const allSellers = await sellerRes.json();
+          const currentSeller = allSellers.find((s: any) => s.id === sellerId);
+          setSeller(currentSeller);
+        }
+        if (ordersRes.ok) {
+          setOrders(await ordersRes.json());
         }
       } catch (error) {
-        console.error("Failed to fetch seller orders:", error);
+        console.error("Failed to fetch seller data:", error);
       } finally {
         setIsRefreshing(false);
       }
     };
     fetchSellerData();
   }, [sellerId, token]);
+
+  const handleToggleAvailability = async (dishId: string, currentAvailable: boolean) => {
+    try {
+      const res = await fetch(`/api/sellers/${sellerId}/menu/${dishId}/availability`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ available: !currentAvailable })
+      });
+      if (res.ok) {
+        setSeller({
+          ...seller,
+          menu: seller.menu.map((item: any) => 
+            item.id === dishId ? { ...item, available: !currentAvailable } : item
+          )
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle availability:", error);
+    }
+  };
+
+  const handleAddDish = async () => {
+    try {
+      const res = await fetch(`/api/sellers/${sellerId}/menu`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ ...newDish, price: parseFloat(newDish.price) })
+      });
+      if (res.ok) {
+        const addedDish = await res.json();
+        setSeller({
+          ...seller,
+          menu: [...(seller.menu || []), addedDish]
+        });
+        setShowAddModal(false);
+        setNewDish({ name: '', price: '', description: '', category: 'Plats', image: 'https://picsum.photos/seed/food/400' });
+      }
+    } catch (error) {
+      console.error("Failed to add dish:", error);
+    }
+  };
+
+  const handleUpdateSettings = async (settings: any) => {
+    try {
+      const res = await fetch(`/api/sellers/${sellerId}/settings`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(settings)
+      });
+      if (res.ok) {
+        setSeller({ ...seller, ...settings });
+        alert('Paramètres mis à jour !');
+      }
+    } catch (error) {
+      console.error("Failed to update settings:", error);
+    }
+  };
+
+  if (!seller) return <div className="flex items-center justify-center h-full">Chargement...</div>;
 
   return (
     <div className="min-h-full bg-gray-50 font-sans flex">
@@ -101,7 +161,7 @@ export default function SellerDashboard({
               {activeView === 'menu' && "Gestion du Menu"}
               {activeView === 'settings' && "Paramètres Boutique"}
             </h2>
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">Vendeur ID: {sellerId} • {format(new Date(), 'dd MMMM yyyy')}</p>
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">{seller.name} • ID: {sellerId}</p>
           </div>
 
           <div className="flex items-center gap-6">
@@ -111,35 +171,99 @@ export default function SellerDashboard({
             </button>
             <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
               <div className="text-right">
-                <p className="text-xs font-black text-gray-900">Le Gourmet</p>
-                <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Ouvert</p>
+                <p className="text-xs font-black text-gray-900">{seller.name}</p>
+                <p className={cn("text-[10px] font-bold uppercase tracking-widest", seller.status === 'active' ? "text-green-500" : "text-red-500")}>
+                  {seller.status === 'active' ? 'Ouvert' : 'Fermé'}
+                </p>
               </div>
-              <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-orange-200">
-                G
+              <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-orange-200 overflow-hidden">
+                <img src={seller.image} alt="" className="w-full h-full object-cover" />
               </div>
             </div>
           </div>
         </header>
 
         <div className="p-8 overflow-y-auto flex-1">
-          {activeView === 'dashboard' && <SellerStatsView stats={stats} revenueData={revenueData} orders={orders} />}
+          {activeView === 'dashboard' && <SellerStatsView seller={seller} orders={orders} />}
           {activeView === 'orders' && <SellerOrdersView orders={orders} />}
-          {activeView === 'menu' && <SellerMenuView />}
-          {activeView === 'settings' && <SellerSettingsView />}
+          {activeView === 'menu' && (
+            <SellerMenuView 
+              menu={seller.menu || []} 
+              onAdd={() => setShowAddModal(true)} 
+              onToggleAvailability={handleToggleAvailability}
+            />
+          )}
+          {activeView === 'settings' && <SellerSettingsView seller={seller} onSave={handleUpdateSettings} />}
         </div>
       </main>
+
+      {/* Add Dish Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
+          <div className="bg-white rounded-[32px] w-full max-w-lg p-8 animate-in zoom-in duration-300">
+            <h3 className="text-2xl font-black mb-6">Ajouter un plat</h3>
+            <div className="space-y-4">
+              <input 
+                placeholder="Nom du plat" 
+                className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold"
+                value={newDish.name}
+                onChange={e => setNewDish({...newDish, name: e.target.value})}
+              />
+              <input 
+                placeholder="Prix (€)" 
+                type="number"
+                className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold"
+                value={newDish.price}
+                onChange={e => setNewDish({...newDish, price: e.target.value})}
+              />
+              <textarea 
+                placeholder="Description" 
+                className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold"
+                value={newDish.description}
+                onChange={e => setNewDish({...newDish, description: e.target.value})}
+              />
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-4 bg-gray-100 font-black rounded-2xl"
+                >
+                  Annuler
+                </button>
+                <button 
+                  onClick={handleAddDish}
+                  className="flex-1 py-4 bg-orange-600 text-white font-black rounded-2xl shadow-lg shadow-orange-100"
+                >
+                  Ajouter
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function SellerStatsView({ stats, revenueData, orders }: any) {
+function SellerStatsView({ seller, orders }: any) {
+  const revenue = orders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + o.total, 0);
+  
+  const revenueData = [
+    { name: 'Lun', total: 400 },
+    { name: 'Mar', total: 300 },
+    { name: 'Mer', total: 500 },
+    { name: 'Jeu', total: 280 },
+    { name: 'Ven', total: 590 },
+    { name: 'Sam', total: 800 },
+    { name: 'Dim', total: 600 },
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard label="Revenus (7j)" value={`${stats.revenue.toLocaleString()} €`} icon={DollarSign} trend="+12%" color="orange" />
-        <StatCard label="Commandes" value={stats.ordersCount} icon={Package} trend="+5" color="blue" />
-        <StatCard label="Note Moyenne" value={stats.avgRating} icon={Star} trend="Stable" color="green" />
-        <StatCard label="En cours" value={stats.activeOrders} icon={Clock} trend="Live" color="violet" />
+        <StatCard label="Revenus Totaux" value={`${revenue.toFixed(2)} €`} icon={DollarSign} trend="+12%" color="orange" />
+        <StatCard label="Commandes" value={orders.length} icon={Package} trend="+5" color="blue" />
+        <StatCard label="Note Moyenne" value={seller.rating} icon={Star} trend="Stable" color="green" />
+        <StatCard label="En cours" value={orders.filter((o: any) => ['pending', 'preparing', 'ready', 'delivering'].includes(o.status)).length} icon={Clock} trend="Live" color="violet" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -261,13 +385,7 @@ function SellerOrdersView({ orders }: { orders: any[] }) {
   );
 }
 
-function SellerMenuView() {
-  const menuItems = [
-    { id: 1, name: 'Burger Classic', price: 12.50, category: 'Plats', status: 'available', img: 'https://picsum.photos/seed/burger/200' },
-    { id: 2, name: 'Frites Maison', price: 4.50, category: 'Accompagnements', status: 'available', img: 'https://picsum.photos/seed/fries/200' },
-    { id: 3, name: 'Salade César', price: 10.00, category: 'Plats', status: 'out_of_stock', img: 'https://picsum.photos/seed/salad/200' },
-  ];
-
+function SellerMenuView({ menu, onAdd, onToggleAvailability }: { menu: any[], onAdd: () => void, onToggleAvailability: (id: string, avail: boolean) => void }) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex justify-between items-center">
@@ -275,19 +393,30 @@ function SellerMenuView() {
           <h3 className="text-2xl font-black text-gray-900">Carte du Restaurant</h3>
           <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Gérez vos plats et tarifs</p>
         </div>
-        <button className="btn-primary flex items-center gap-2 bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-100">
+        <button 
+          onClick={onAdd}
+          className="btn-primary flex items-center gap-2 bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-100"
+        >
           <Plus className="w-5 h-5" /> Ajouter un Article
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {menuItems.map(item => (
-          <div key={item.id} className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all group">
+        {menu.map(item => (
+          <div key={item.id} className={cn(
+            "bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all group",
+            item.available === false && "opacity-75 grayscale-[0.5]"
+          )}>
             <div className="h-48 relative overflow-hidden">
-              <img src={item.img} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+              <img src={item.image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
               <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-gray-900">
-                {item.category}
+                {item.category || 'Plat'}
               </div>
+              {item.available === false && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <span className="bg-red-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest">Épuisé</span>
+                </div>
+              )}
             </div>
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
@@ -295,11 +424,20 @@ function SellerMenuView() {
                   <h4 className="font-black text-lg text-gray-900">{item.name}</h4>
                   <p className="text-xl font-black text-orange-600">{item.price.toFixed(2)} €</p>
                 </div>
-                <div className={cn(
-                  "w-3 h-3 rounded-full",
-                  item.status === 'available' ? "bg-green-500" : "bg-red-500"
-                )} />
+                <button 
+                  onClick={() => onToggleAvailability(item.id, item.available !== false)}
+                  className={cn(
+                    "w-10 h-5 rounded-full relative transition-colors",
+                    item.available !== false ? "bg-green-500" : "bg-gray-300"
+                  )}
+                >
+                  <div className={cn(
+                    "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
+                    item.available !== false ? "right-1" : "left-1"
+                  )} />
+                </button>
               </div>
+              <p className="text-xs text-gray-500 mb-4 line-clamp-2">{item.description}</p>
               <div className="flex gap-2 pt-4 border-t border-gray-50">
                 <button className="flex-1 py-2 bg-gray-50 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-orange-50 hover:text-orange-600 transition-all">Modifier</button>
                 <button className="p-2 bg-gray-50 rounded-xl text-gray-400 hover:text-red-600 transition-all"><Trash2 className="w-4 h-4" /></button>
@@ -312,7 +450,14 @@ function SellerMenuView() {
   );
 }
 
-function SellerSettingsView() {
+function SellerSettingsView({ seller, onSave }: { seller: any, onSave: (s: any) => void }) {
+  const [formData, setFormData] = useState({
+    name: seller.name,
+    type: seller.type,
+    image: seller.image,
+    status: seller.status
+  });
+
   return (
     <div className="max-w-3xl bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center gap-5 mb-10">
@@ -329,21 +474,35 @@ function SellerSettingsView() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom du Restaurant</label>
-            <input type="text" defaultValue="Le Gourmet" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-black text-gray-900 focus:ring-2 focus:ring-orange-100 transition-all" />
+            <input 
+              type="text" 
+              value={formData.name} 
+              onChange={e => setFormData({...formData, name: e.target.value})}
+              className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-black text-gray-900 focus:ring-2 focus:ring-orange-100 transition-all" 
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Catégorie</label>
-            <select className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-black text-gray-900 focus:ring-2 focus:ring-orange-100 transition-all">
-              <option>Restaurant</option>
-              <option>Épicerie</option>
-              <option>Boulangerie</option>
+            <select 
+              value={formData.type}
+              onChange={e => setFormData({...formData, type: e.target.value})}
+              className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-black text-gray-900 focus:ring-2 focus:ring-orange-100 transition-all"
+            >
+              <option value="restaurant">Restaurant</option>
+              <option value="supermarket">Épicerie</option>
+              <option value="clothing">Vêtements</option>
             </select>
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Description</label>
-          <textarea rows={4} defaultValue="Cuisine traditionnelle avec des produits frais et locaux." className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-gray-900 focus:ring-2 focus:ring-orange-100 transition-all" />
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">URL de l'image</label>
+          <input 
+            type="text" 
+            value={formData.image} 
+            onChange={e => setFormData({...formData, image: e.target.value})}
+            className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-gray-900 focus:ring-2 focus:ring-orange-100 transition-all" 
+          />
         </div>
 
         <div className="flex items-center justify-between p-6 bg-orange-50 rounded-[24px] border border-orange-100">
@@ -353,15 +512,29 @@ function SellerSettingsView() {
             </div>
             <div>
               <p className="text-sm font-black text-gray-900">Statut de la Boutique</p>
-              <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Actuellement en ligne</p>
+              <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">
+                {formData.status === 'active' ? 'Actuellement en ligne' : 'Fermé temporairement'}
+              </p>
             </div>
           </div>
-          <div className="w-12 h-6 bg-orange-600 rounded-full relative">
-            <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
-          </div>
+          <button 
+            onClick={() => setFormData({...formData, status: formData.status === 'active' ? 'suspended' : 'active'})}
+            className={cn(
+              "w-12 h-6 rounded-full relative transition-colors",
+              formData.status === 'active' ? "bg-orange-600" : "bg-gray-300"
+            )}
+          >
+            <div className={cn(
+              "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+              formData.status === 'active' ? "right-1" : "left-1"
+            )} />
+          </button>
         </div>
 
-        <button className="w-full py-5 bg-orange-600 text-white font-black rounded-2xl shadow-xl shadow-orange-100 hover:bg-orange-700 transition-all">
+        <button 
+          onClick={() => onSave(formData)}
+          className="w-full py-5 bg-orange-600 text-white font-black rounded-2xl shadow-xl shadow-orange-100 hover:bg-orange-700 transition-all"
+        >
           Enregistrer les Modifications
         </button>
       </div>

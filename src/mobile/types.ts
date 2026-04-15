@@ -1,11 +1,13 @@
 export interface Seller {
   id: string;
+  _id?: string;
   name: string;
   rating: number;
   time: string;
   fee: string;
   image: string;
   type?: 'restaurant' | 'clothing' | 'supermarket' | 'other';
+  menu?: any[];
 }
 
 export interface Category {

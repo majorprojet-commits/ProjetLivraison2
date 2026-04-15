@@ -4,25 +4,31 @@ import { Package, TrendingUp, Users, Clock, ChevronRight, RefreshCw } from 'luci
 import { format } from 'date-fns';
 
 export default function SellerHome() {
+  const [seller, setSeller] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchData = async () => {
     try {
       // In MVP, we use 'r1' as the default seller ID for the dev-token admin
-      const response = await fetch('/api/orders/seller/r1', {
-        headers: { 'Authorization': 'Bearer dev-token' }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[SellerHome] Orders fetched:', data.length);
+      const [sellerRes, ordersRes] = await Promise.all([
+        fetch('/api/sellers', { headers: { 'Authorization': 'Bearer dev-token' } }),
+        fetch('/api/orders/seller/r1', { headers: { 'Authorization': 'Bearer dev-token' } })
+      ]);
+
+      if (sellerRes.ok) {
+        const allSellers = await sellerRes.json();
+        const currentSeller = allSellers.find((s: any) => s.id === 'r1');
+        setSeller(currentSeller);
+      }
+
+      if (ordersRes.ok) {
+        const data = await ordersRes.json();
         setOrders(data);
-      } else {
-        console.error('[SellerHome] Fetch error:', response.status);
       }
     } catch (error) {
-      console.error('Fetch orders error:', error);
+      console.error('Fetch data error:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -30,8 +36,8 @@ export default function SellerHome() {
   };
 
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Poll every 10s for real-time feel
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -46,7 +52,7 @@ export default function SellerHome() {
         body: JSON.stringify({ status: newStatus })
       });
       if (response.ok) {
-        fetchOrders();
+        fetchData();
       }
     } catch (error) {
       console.error('Update status error:', error);
@@ -63,12 +69,15 @@ export default function SellerHome() {
       style={styles.container} 
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchOrders(); }} />
+        <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchData(); }} />
       }
     >
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Dashboard Vendeur</Text>
-        <TouchableOpacity onPress={() => { setIsLoading(true); fetchOrders(); }}>
+        <View>
+          <Text style={styles.title}>{seller?.name || 'Dashboard Vendeur'}</Text>
+          <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Hub Vendeur Mobile</Text>
+        </View>
+        <TouchableOpacity onPress={() => { setIsLoading(true); fetchData(); }}>
           <RefreshCw size={20} color="#8b5cf6" />
         </TouchableOpacity>
       </View>

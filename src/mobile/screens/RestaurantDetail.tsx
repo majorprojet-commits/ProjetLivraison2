@@ -8,12 +8,6 @@ interface RestaurantDetailProps {
   onBack: () => void;
 }
 
-const MENU_ITEMS = [
-  { id: 'm1', name: 'Classic Cheeseburger', price: 8.99, description: 'Bœuf, cheddar, salade, tomate, sauce maison', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=200&q=80' },
-  { id: 'm2', name: 'Double Bacon Burger', price: 11.99, description: 'Double bœuf, double bacon, cheddar', image: 'https://images.unsplash.com/photo-1594212202875-86ac4ce40b6b?auto=format&fit=crop&w=200&q=80' },
-  { id: 'm3', name: 'Frites Maison', price: 3.50, description: 'Portion généreuse de frites croustillantes', image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=200&q=80' },
-];
-
 export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetailProps) {
   const [cart, setCart] = useState<any[]>([]);
   const [isOrdering, setIsOrdering] = useState(false);
@@ -97,18 +91,22 @@ export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetai
 
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Menu</Text>
-          {MENU_ITEMS.map(item => (
-            <View key={item.id} style={styles.menuItem}>
+          {(restaurant.menu || []).map(item => (
+            <View key={item.id} style={[styles.menuItem, item.available === false && { opacity: 0.5 }]}>
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
                 <Text style={styles.itemPrice}>{item.price.toFixed(2)} €</Text>
+                {item.available === false && (
+                  <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold', marginTop: 4 }}>ÉPUISÉ</Text>
+                )}
               </View>
               <View style={styles.itemRight}>
                 <Image source={{ uri: item.image }} style={styles.itemImage} />
                 <TouchableOpacity 
-                  style={styles.addBtn}
-                  onPress={() => addToCart(item)}
+                  style={[styles.addBtn, item.available === false && { backgroundColor: '#94a3b8' }]}
+                  onPress={() => item.available !== false && addToCart(item)}
+                  disabled={item.available === false}
                 >
                   <Plus size={20} color="#fff" />
                 </TouchableOpacity>
