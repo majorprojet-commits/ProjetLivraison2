@@ -16,10 +16,16 @@ const AdminDashboard = dynamic(() => import('../src/admin/AdminDashboard'), {
   loading: () => <div className="flex items-center justify-center h-full">Chargement du Dashboard Admin...</div>
 });
 
-export default function Home() {
-  const [view, setView] = useState<'admin' | 'mobile'>('admin');
+// Dynamically import SellerDashboard
+const SellerDashboard = dynamic(() => import('../src/admin/SellerDashboard'), { 
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-full">Chargement du Dashboard Vendeur...</div>
+});
 
-  const handleViewChange = (newView: 'admin' | 'mobile') => {
+export default function Home() {
+  const [view, setView] = useState<'admin' | 'seller' | 'mobile'>('admin');
+
+  const handleViewChange = (newView: 'admin' | 'seller' | 'mobile') => {
     console.log(`[Switcher] Changing view to: ${newView}`);
     setView(newView);
   };
@@ -38,13 +44,19 @@ export default function Home() {
         <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
           <button 
             onClick={() => handleViewChange('admin')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${view === 'admin' ? 'bg-white text-violet-600 shadow-md scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${view === 'admin' ? 'bg-white text-violet-600 shadow-md scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
           >
             <Monitor className="w-4 h-4" /> Admin Web
           </button>
           <button 
+            onClick={() => handleViewChange('seller')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${view === 'seller' ? 'bg-white text-orange-600 shadow-md scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+          >
+            <LayoutDashboard className="w-4 h-4" /> Vendeur Web
+          </button>
+          <button 
             onClick={() => handleViewChange('mobile')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${view === 'mobile' ? 'bg-white text-violet-600 shadow-md scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${view === 'mobile' ? 'bg-white text-violet-600 shadow-md scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
           >
             <Smartphone className="w-4 h-4" /> Mobile Apps
           </button>
@@ -59,6 +71,10 @@ export default function Home() {
         {view === 'admin' ? (
           <div className="h-full overflow-auto bg-white scrollbar-hide">
             <AdminDashboard />
+          </div>
+        ) : view === 'seller' ? (
+          <div className="h-full overflow-auto bg-white scrollbar-hide">
+            <SellerDashboard />
           </div>
         ) : (
           <div className="h-full flex items-center justify-center p-4 md:p-8 bg-gray-900 overflow-y-auto">
