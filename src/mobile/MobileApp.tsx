@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
-import { Home, ShoppingBag, User, Settings, Package, Navigation, LucideIcon } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Platform } from 'react-native';
+import { Home, ShoppingBag, User, Settings, Package, Navigation, LucideIcon, Bell } from 'lucide-react-native';
+import { io } from 'socket.io-client';
 
 import ClientHome from './screens/ClientHome';
 import SellerHome from './screens/SellerHome';
@@ -14,6 +15,31 @@ type AppType = 'client' | 'seller' | 'driver' | 'profile';
 export default function MobileApp() {
   const [activeApp, setActiveApp] = useState<AppType>('client');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Seller | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const socket = io();
+    
+    // Join relevant rooms
+    socket.emit('join', 'drivers');
+    socket.emit('join', 'seller_r1'); // Mock seller room
+
+    socket.on('newOrder', (order) => {
+      setNotifications(prev => [{ id: Date.now(), message: `Nouvelle commande #${order.id.slice(-4).toUpperCase()}` }, ...prev]);
+    });
+
+    socket.on('orderAvailable', (order) => {
+      setNotifications(prev => [{ id: Date.now(), message: `Nouvelle livraison disponible !` }, ...prev]);
+    });
+
+    socket.on('orderUpdated', (order) => {
+      setNotifications(prev => [{ id: Date.now(), message: `Commande #${order.id.slice(-4).toUpperCase()} mise à jour: ${order.status}` }, ...prev]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleAppChange = (app: AppType) => {
     console.log(`[MobileApp] Switching to: ${app}`);
@@ -39,7 +65,24 @@ export default function MobileApp() {
       <View style={{ height: 0, opacity: 0 }}><Text>MobileApp Loaded</Text></View>
       <View style={styles.header}>
         <Text style={styles.headerText}>Expo Mobile Preview</Text>
+        {notifications.length > 0 && (
+          <TouchableOpacity 
+            style={styles.notifBadge}
+            onPress={() => setNotifications([])}
+          >
+            <Bell size={16} color="#fff" />
+            <View style={styles.notifCount}>
+              <Text style={styles.notifCountText}>{notifications.length}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {notifications.length > 0 && (
+        <View style={styles.notifToast}>
+          <Text style={styles.notifToastText}>{notifications[0].message}</Text>
+        </View>
+      )}
       
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
@@ -78,8 +121,13 @@ function TabItem({ active, label, icon: Icon, onPress }: TabItemProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', alignItems: 'center' },
+  header: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   headerText: { fontWeight: '900', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
+  notifBadge: { position: 'absolute', right: 16, backgroundColor: '#8b5cf6', padding: 8, borderRadius: 20 },
+  notifCount: { position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', borderRadius: 10, width: 18, height: 18, justifyContent: 'center', alignItems: 'center', borderWeight: 2, borderColor: '#fff' },
+  notifCountText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  notifToast: { position: 'absolute', top: 80, left: 20, right: 20, backgroundColor: '#1e293b', padding: 16, borderRadius: 16, zIndex: 1000, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 10 },
+  notifToastText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
   content: { flex: 1 },
   screen: { flex: 1, padding: 16 },
   title: { fontSize: 24, fontWeight: '900', marginBottom: 20 },

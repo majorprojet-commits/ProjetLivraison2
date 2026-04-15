@@ -1,5 +1,7 @@
 import express from 'express';
 import next from 'next';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import path from 'path';
 import apiRoutes from './server/api/routes/index.js';
 import { connectDB } from './server/db/mongoose.js';
@@ -19,6 +21,11 @@ async function startServer() {
   }
   
   const app = express();
+  const httpServer = createServer(app);
+  const io = new Server(httpServer, {
+    cors: { origin: "*" }
+  });
+
   const PORT = 3000;
 
   console.log('Connecting to MongoDB...');
@@ -31,6 +38,25 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Attach io to req
+  app.use((req: any, res, next) => {
+    req.io = io;
+    next();
+  });
+
+  io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+    
+    socket.on('join', (room) => {
+      socket.join(room);
+      console.log(`Socket ${socket.id} joined room: ${room}`);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('User disconnected');
+    });
+  });
+
   // API Routes
   console.log('Registering API routes...');
   app.use('/api', apiRoutes);
@@ -40,7 +66,7 @@ async function startServer() {
     return handle(req, res);
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`> Server ready on http://localhost:${PORT}`);
   });
 }

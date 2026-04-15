@@ -15,7 +15,35 @@ const SEED_SELLERS = [
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
     type: 'restaurant',
     menu: [
-      { id: 'm1', name: 'Classic Cheeseburger', price: 8.99, description: 'Bœuf, cheddar, salade, tomate, sauce maison', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=200&q=80' },
+      { 
+        id: 'm1', 
+        name: 'Classic Cheeseburger', 
+        price: 8.99, 
+        description: 'Bœuf, cheddar, salade, tomate, sauce maison', 
+        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=200&q=80',
+        options: [
+          {
+            id: 'opt1',
+            name: 'Cuisson',
+            required: true,
+            choices: [
+              { id: 'c1', name: 'Saignant', priceExtra: 0 },
+              { id: 'c2', name: 'À point', priceExtra: 0 },
+              { id: 'c3', name: 'Bien cuit', priceExtra: 0 }
+            ]
+          },
+          {
+            id: 'opt2',
+            name: 'Suppléments',
+            required: false,
+            choices: [
+              { id: 'c4', name: 'Bacon', priceExtra: 1.50 },
+              { id: 'c5', name: 'Fromage', priceExtra: 0.80 },
+              { id: 'c6', name: 'Oignons frits', priceExtra: 0.50 }
+            ]
+          }
+        ]
+      },
       { id: 'm2', name: 'Double Bacon Burger', price: 11.99, description: 'Double bœuf, double bacon, cheddar', image: 'https://images.unsplash.com/photo-1594212202875-86ac4ce40b6b?auto=format&fit=crop&w=200&q=80' },
       { id: 'm3', name: 'Frites Maison', price: 3.50, description: 'Portion généreuse de frites croustillantes', image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=200&q=80' },
     ]

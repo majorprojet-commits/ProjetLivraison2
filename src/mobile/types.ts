@@ -3,8 +3,10 @@ export interface Seller {
   _id?: string;
   name: string;
   rating: number;
-  time: string;
-  fee: string;
+  time?: string;
+  fee?: string;
+  deliveryTime?: string;
+  deliveryFee?: number;
   image: string;
   type?: 'restaurant' | 'clothing' | 'supermarket' | 'other';
   menu?: any[];

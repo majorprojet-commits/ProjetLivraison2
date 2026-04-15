@@ -20,11 +20,19 @@ export class OrderCtrl {
     private assignDriver: AssignDriver
   ) {}
   
-  create = async (req: AuthRequest, res: Response) => {
+  create = async (req: any, res: Response) => {
     try {
       console.log('[OrderCtrl] Creating order:', req.body);
       const data = await this.createOrder.execute({ ...req.body, userId: req.user.id });
-      res.status(201).json(OrderVM.format(data));
+      const formatted = OrderVM.format(data);
+      
+      // Emit to seller room
+      if (req.io) {
+        req.io.to(`seller_${data.sellerId}`).emit('newOrder', formatted);
+        req.io.to('admin').emit('newOrder', formatted);
+      }
+      
+      res.status(201).json(formatted);
     } catch (e) { 
       console.error('[OrderCtrl] Create error:', e);
       res.status(500).json({ error: 'Server Error', details: e instanceof Error ? e.message : String(e) }); 
@@ -56,7 +64,7 @@ export class OrderCtrl {
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
 
-  updateStatus = async (req: AuthRequest, res: Response) => {
+  updateStatus = async (req: any, res: Response) => {
     try {
       if (req.user.role !== 'seller' && req.user.role !== 'admin' && req.user.role !== 'driver') {
         return res.status(403).json({ error: 'Forbidden' });
@@ -65,7 +73,16 @@ export class OrderCtrl {
       const { status, ...extraData } = req.body;
       const data = await this.updateOrderStatus.execute(orderId, status, extraData);
       if (!data) return res.status(404).json({ error: 'Order not found' });
-      res.json(OrderVM.format(data));
+      
+      const formatted = OrderVM.format(data);
+      if (req.io) {
+        req.io.to(`order_${orderId}`).emit('orderUpdated', formatted);
+        req.io.to(`seller_${data.sellerId}`).emit('orderUpdated', formatted);
+        req.io.to('admin').emit('orderUpdated', formatted);
+        if (status === 'ready') req.io.to('drivers').emit('orderAvailable', formatted);
+      }
+      
+      res.json(formatted);
     } catch (e) { res.status(500).json({ error: 'Server Error' }); }
   };
 
@@ -94,7 +111,7 @@ export class OrderCtrl {
     }
   };
 
-  assignToDriver = async (req: AuthRequest, res: Response) => {
+  assignToDriver = async (req: any, res: Response) => {
     try {
       if (req.user.role !== 'driver' && req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Forbidden' });
@@ -106,8 +123,16 @@ export class OrderCtrl {
         console.error(`[OrderCtrl] Order ${orderId} not found for assignment`);
         return res.status(404).json({ error: 'Order not found' });
       }
+      
+      const formatted = OrderVM.format(data);
+      if (req.io) {
+        req.io.to(`order_${orderId}`).emit('orderUpdated', formatted);
+        req.io.to(`seller_${data.sellerId}`).emit('orderUpdated', formatted);
+        req.io.to('admin').emit('orderUpdated', formatted);
+      }
+      
       console.log(`[OrderCtrl] Order ${orderId} assigned successfully. New status: ${data.status}`);
-      res.json(OrderVM.format(data));
+      res.json(formatted);
     } catch (e) { 
       console.error('[OrderCtrl] Assign error:', e);
       res.status(500).json({ error: 'Server Error' }); 

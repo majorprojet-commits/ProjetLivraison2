@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput } from 'react-native';
 import { Search, MapPin, Star, Clock } from 'lucide-react-native';
 import { Seller, Category } from '../types';
@@ -18,6 +18,28 @@ const SELLERS: Seller[] = [
 ];
 
 export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (seller: Seller) => void }) {
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSellers = async () => {
+      try {
+        const response = await fetch('/api/sellers', {
+          headers: { 'Authorization': 'Bearer dev-token' }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSellers(data);
+        }
+      } catch (error) {
+        console.error('Fetch sellers error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSellers();
+  }, []);
+
   return (
     <View style={styles.container}>
       {/* Location Header */}
@@ -56,7 +78,11 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
           <TouchableOpacity><Text style={styles.seeAll}>Voir tout</Text></TouchableOpacity>
         </View>
 
-        {SELLERS.map(seller => (
+        {isLoading ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={{ color: '#94a3b8', fontWeight: 'bold' }}>Chargement des restaurants...</Text>
+          </View>
+        ) : sellers.map(seller => (
           <TouchableOpacity 
             key={seller.id} 
             style={styles.sellerCard}
@@ -73,7 +99,7 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
               </View>
               <View style={styles.sellerMeta}>
                 <Clock size={12} color="#94a3b8" />
-                <Text style={styles.metaText}>{seller.time} • {seller.fee}</Text>
+                <Text style={styles.metaText}>{seller.deliveryTime || '20-30'} min • {seller.deliveryFee ? `${seller.deliveryFee}€` : 'Gratuit'}</Text>
               </View>
             </View>
           </TouchableOpacity>

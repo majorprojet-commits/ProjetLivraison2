@@ -151,7 +151,10 @@ export default function SellerHome() {
 }
 
 function OrderCard({ order, onUpdateStatus }: { order: any, onUpdateStatus: (id: string, status: string) => void }) {
-  const itemsText = order.items.map((i: any) => `${i.quantity || 1}x ${i.name}`).join(', ');
+  const itemsText = order.items.map((i: any) => {
+    const optionsText = i.selectedChoices ? Object.values(i.selectedChoices).map((c: any) => c.name).join(', ') : '';
+    return `${i.quantity || 1}x ${i.name}${optionsText ? ` (${optionsText})` : ''}`;
+  }).join('\n');
   const time = order.date ? format(new Date(order.date), 'HH:mm') : '--:--';
 
   const getStatusColor = (status: string) => {
@@ -179,7 +182,7 @@ function OrderCard({ order, onUpdateStatus }: { order: any, onUpdateStatus: (id:
         <Text style={styles.orderId}>#{order.id.slice(-4).toUpperCase()}</Text>
         <Text style={styles.orderTime}>{time}</Text>
       </View>
-      <Text style={styles.orderItems} numberOfLines={2}>{itemsText}</Text>
+      <Text style={styles.orderItems} numberOfLines={5}>{itemsText}</Text>
       <View style={styles.orderFooter}>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
           <Text style={styles.statusText}>{getStatusText(order.status)}</Text>

@@ -13,6 +13,7 @@ import {
   AreaChart, Area
 } from 'recharts';
 import { format } from 'date-fns';
+import { io } from 'socket.io-client';
 
 interface SellerDashboardProps {
   sellerId?: string;
@@ -30,7 +31,60 @@ export default function SellerDashboard({
   const [orders, setOrders] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newDish, setNewDish] = useState({ name: '', price: '', description: '', category: 'Plats', image: 'https://picsum.photos/seed/food/400' });
+  const [newDish, setNewDish] = useState<any>({ 
+    name: '', 
+    price: '', 
+    description: '', 
+    category: 'Plats', 
+    image: '',
+    options: []
+  });
+  const [imageInputType, setImageInputType] = useState<'url' | 'upload'>('url');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    const socket = io();
+    socket.emit('join', `seller_${sellerId}`);
+
+    socket.on('newOrder', (order) => {
+      console.log('[Socket] New order received:', order);
+      setOrders(prev => [order, ...prev]);
+      setNotifications(prev => [{ id: Date.now(), message: `Nouvelle commande #${order.id.slice(-4).toUpperCase()}`, orderId: order.id }, ...prev]);
+      
+      // Play sound notification if possible
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play();
+      } catch (e) {
+        console.log('Audio play blocked');
+      }
+    });
+
+    socket.on('orderUpdated', (order) => {
+      setOrders(prev => prev.map(o => o.id === order.id ? order : o));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [sellerId]);
+
+  const addOptionToNewDish = () => {
+    setNewDish({
+      ...newDish,
+      options: [...newDish.options, { id: Date.now().toString(), name: '', required: false, choices: [] }]
+    });
+  };
+
+  const addChoiceToOption = (optId: string) => {
+    setNewDish({
+      ...newDish,
+      options: newDish.options.map((opt: any) => 
+        opt.id === optId ? { ...opt, choices: [...opt.choices, { id: Date.now().toString(), name: '', priceExtra: 0 }] } : opt
+      )
+    });
+  };
 
   useEffect(() => {
     const fetchSellerData = async () => {
@@ -82,6 +136,10 @@ export default function SellerDashboard({
   };
 
   const handleAddDish = async () => {
+    if (!newDish.name || !newDish.price || !newDish.image) {
+      alert("Veuillez remplir tous les champs obligatoires, y compris l'image.");
+      return;
+    }
     try {
       const res = await fetch(`/api/sellers/${sellerId}/menu`, {
         method: 'POST',
@@ -98,7 +156,14 @@ export default function SellerDashboard({
           menu: [...(seller.menu || []), addedDish]
         });
         setShowAddModal(false);
-        setNewDish({ name: '', price: '', description: '', category: 'Plats', image: 'https://picsum.photos/seed/food/400' });
+        setNewDish({ 
+          name: '', 
+          price: '', 
+          description: '', 
+          category: 'Plats', 
+          image: '',
+          options: []
+        });
       }
     } catch (error) {
       console.error("Failed to add dish:", error);
@@ -165,10 +230,42 @@ export default function SellerDashboard({
           </div>
 
           <div className="flex items-center gap-6">
-            <button className="p-2.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all relative">
-              <Bell className="w-5 h-5" />
-              <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-600 rounded-full border-2 border-white" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all relative"
+              >
+                <Bell className="w-5 h-5" />
+                {notifications.length > 0 && (
+                  <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-600 rounded-full border-2 border-white" />
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-top-2 duration-300">
+                  <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Notifications</p>
+                    <button onClick={() => setNotifications([])} className="text-[10px] font-black uppercase tracking-widest text-orange-600">Effacer</button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-gray-400">Aucune notification</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setActiveView('orders'); setShowNotifications(false); }}>
+                          <p className="text-sm font-bold text-gray-900">{n.message}</p>
+                          <p className="text-[10px] text-gray-400 font-bold mt-1">À l'instant</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
               <div className="text-right">
                 <p className="text-xs font-black text-gray-900">{seller.name}</p>
@@ -222,7 +319,128 @@ export default function SellerDashboard({
                 value={newDish.description}
                 onChange={e => setNewDish({...newDish, description: e.target.value})}
               />
-              <div className="flex gap-4">
+
+              <div className="space-y-3">
+                <p className="text-xs font-black uppercase tracking-widest text-gray-400">Image du plat (Obligatoire)</p>
+                <div className="flex gap-2 bg-gray-50 p-1 rounded-xl">
+                  <button 
+                    onClick={() => setImageInputType('url')}
+                    className={cn("flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", imageInputType === 'url' ? "bg-white text-orange-600 shadow-sm" : "text-gray-400")}
+                  >
+                    Lien URL
+                  </button>
+                  <button 
+                    onClick={() => setImageInputType('upload')}
+                    className={cn("flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", imageInputType === 'upload' ? "bg-white text-orange-600 shadow-sm" : "text-gray-400")}
+                  >
+                    Importer
+                  </button>
+                </div>
+                
+                {imageInputType === 'url' ? (
+                  <input 
+                    placeholder="https://exemple.com/image.jpg" 
+                    className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm"
+                    value={newDish.image}
+                    onChange={e => setNewDish({...newDish, image: e.target.value})}
+                  />
+                ) : (
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setNewDish({...newDish, image: reader.result as string});
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    <div className="w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl px-6 py-8 flex flex-col items-center justify-center gap-2">
+                      {newDish.image ? (
+                        <img src={newDish.image} alt="Preview" className="w-20 h-20 object-cover rounded-xl mb-2" />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                          <ShoppingBag className="w-5 h-5 text-gray-400" />
+                        </div>
+                      )}
+                      <p className="text-xs font-bold text-gray-500">
+                        {newDish.image ? "Changer l'image" : "Cliquez pour importer une image"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">Options (ex: Cuisson, Suppléments)</p>
+                  <button onClick={addOptionToNewDish} className="text-orange-600 font-black text-[10px] uppercase tracking-widest">+ Ajouter Option</button>
+                </div>
+                
+                {newDish.options.map((opt: any, optIdx: number) => (
+                  <div key={opt.id} className="bg-gray-50 p-4 rounded-2xl space-y-3">
+                    <div className="flex gap-2">
+                      <input 
+                        placeholder="Nom de l'option" 
+                        className="flex-1 bg-white border-none rounded-xl px-4 py-2 text-sm font-bold"
+                        value={opt.name}
+                        onChange={e => {
+                          const opts = [...newDish.options];
+                          opts[optIdx].name = e.target.value;
+                          setNewDish({...newDish, options: opts});
+                        }}
+                      />
+                      <button 
+                        onClick={() => {
+                          const opts = [...newDish.options];
+                          opts[optIdx].required = !opts[optIdx].required;
+                          setNewDish({...newDish, options: opts});
+                        }}
+                        className={cn("px-3 py-2 rounded-xl text-[10px] font-black uppercase", opt.required ? "bg-orange-600 text-white" : "bg-white text-gray-400")}
+                      >
+                        Obligatoire
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 pl-4 border-l-2 border-gray-200">
+                      {opt.choices.map((choice: any, choiceIdx: number) => (
+                        <div key={choice.id} className="flex gap-2">
+                          <input 
+                            placeholder="Choix" 
+                            className="flex-1 bg-white border-none rounded-xl px-4 py-2 text-xs font-bold"
+                            value={choice.name}
+                            onChange={e => {
+                              const opts = [...newDish.options];
+                              opts[optIdx].choices[choiceIdx].name = e.target.value;
+                              setNewDish({...newDish, options: opts});
+                            }}
+                          />
+                          <input 
+                            placeholder="+0.00€" 
+                            type="number"
+                            className="w-20 bg-white border-none rounded-xl px-4 py-2 text-xs font-bold"
+                            value={choice.priceExtra}
+                            onChange={e => {
+                              const opts = [...newDish.options];
+                              opts[optIdx].choices[choiceIdx].priceExtra = parseFloat(e.target.value);
+                              setNewDish({...newDish, options: opts});
+                            }}
+                          />
+                        </div>
+                      ))}
+                      <button onClick={() => addChoiceToOption(opt.id)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-orange-600">+ Ajouter Choix</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-4 pt-4">
                 <button 
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 py-4 bg-gray-100 font-black rounded-2xl"
