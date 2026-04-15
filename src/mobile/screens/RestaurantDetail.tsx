@@ -1,12 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { ArrowLeft, Star, Clock, Plus, ShoppingCart } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { ArrowLeft, Star, Clock, Plus, ShoppingCart, CheckCircle2 } from 'lucide-react-native';
 import { Seller } from '../types';
 
 interface RestaurantDetailProps {
   restaurant: Seller;
   onBack: () => void;
-  onAddToCart: (item: any) => void;
 }
 
 const MENU_ITEMS = [
@@ -15,7 +14,66 @@ const MENU_ITEMS = [
   { id: 'm3', name: 'Frites Maison', price: 3.50, description: 'Portion généreuse de frites croustillantes', image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=200&q=80' },
 ];
 
-export default function RestaurantDetail({ restaurant, onBack, onAddToCart }: RestaurantDetailProps) {
+export default function RestaurantDetail({ restaurant, onBack }: RestaurantDetailProps) {
+  const [cart, setCart] = useState<any[]>([]);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+
+  const addToCart = (item: any) => {
+    setCart([...cart, item]);
+  };
+
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+
+  const handlePlaceOrder = async () => {
+    if (cart.length === 0) return;
+    
+    setIsOrdering(true);
+    try {
+      // Mocking a real API call to /api/orders
+      // In a real app, we would use fetch() with a token
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer dev-token' // Using dev token for MVP
+        },
+        body: JSON.stringify({
+          sellerId: restaurant._id || restaurant.id, // Use _id if available, fallback to id
+          items: cart,
+          total: total
+        })
+      });
+
+      if (response.ok) {
+        setOrderSuccess(true);
+        setCart([]);
+        setTimeout(() => {
+          setOrderSuccess(false);
+          onBack();
+        }, 3000);
+      } else {
+        const errData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        alert(`Erreur lors de la commande: ${errData.details || errData.error}`);
+      }
+    } catch (error) {
+      console.error('Order error:', error);
+      alert('Erreur réseau.');
+    } finally {
+      setIsOrdering(false);
+    }
+  };
+
+  if (orderSuccess) {
+    return (
+      <View style={styles.successContainer}>
+        <CheckCircle2 size={80} color="#22c55e" />
+        <Text style={styles.successTitle}>Commande validée !</Text>
+        <Text style={styles.successSub}>Votre repas est en cours de préparation.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -50,7 +108,7 @@ export default function RestaurantDetail({ restaurant, onBack, onAddToCart }: Re
                 <Image source={{ uri: item.image }} style={styles.itemImage} />
                 <TouchableOpacity 
                   style={styles.addBtn}
-                  onPress={() => onAddToCart(item)}
+                  onPress={() => addToCart(item)}
                 >
                   <Plus size={20} color="#fff" />
                 </TouchableOpacity>
@@ -60,19 +118,34 @@ export default function RestaurantDetail({ restaurant, onBack, onAddToCart }: Re
         </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.cartBar}>
-        <View style={styles.cartInfo}>
-          <ShoppingCart size={20} color="#fff" />
-          <Text style={styles.cartText}>Voir le panier</Text>
-        </View>
-        <Text style={styles.cartTotal}>0.00 €</Text>
-      </TouchableOpacity>
+      {cart.length > 0 && (
+        <TouchableOpacity 
+          style={styles.cartBar} 
+          onPress={handlePlaceOrder}
+          disabled={isOrdering}
+        >
+          <View style={styles.cartInfo}>
+            {isOrdering ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <ShoppingCart size={20} color="#fff" />
+            )}
+            <Text style={styles.cartText}>
+              {isOrdering ? 'Traitement...' : `Commander (${cart.length})`}
+            </Text>
+          </View>
+          <Text style={styles.cartTotal}>{total.toFixed(2)} €</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  successContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 40 },
+  successTitle: { fontSize: 28, fontWeight: '900', marginTop: 24, textAlign: 'center' },
+  successSub: { fontSize: 16, color: '#64748b', textAlign: 'center', marginTop: 8 },
   header: { height: 200, position: 'relative' },
   heroImage: { width: '100%', height: '100%' },
   backBtn: { position: 'absolute', top: 40, left: 20, zIndex: 10, backgroundColor: '#fff', padding: 8, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 },

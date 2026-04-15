@@ -23,7 +23,21 @@ export class MongoOrderRepo implements IOrderRepo {
   }
 
   async create(order: Order): Promise<Order> {
-    const doc = await OrderModel.create(order);
+    const plainObject = {
+      userId: order.userId,
+      sellerId: order.sellerId,
+      items: order.items,
+      total: order.total,
+      status: order.status,
+      pickupCode: order.pickupCode,
+      clientCode: order.clientCode,
+      driverId: order.driverId,
+      deliveryPhoto: order.deliveryPhoto,
+      prepTimeExtension: order.prepTimeExtension,
+      driverEta: order.driverEta,
+      pickedUpAt: order.pickedUpAt
+    };
+    const doc = await OrderModel.create(plainObject);
     return this.mapDocToEntity(doc);
   }
   async findByUserId(userId: string): Promise<Order[]> {
@@ -45,11 +59,17 @@ export class MongoOrderRepo implements IOrderRepo {
   }
   async findByDriverId(driverId: string): Promise<Order[]> {
     const docs = await OrderModel.find({ driverId }).sort({ createdAt: -1 });
+    console.log(`[MongoOrderRepo] Found ${docs.length} orders for driver ${driverId}`);
     return docs.map(doc => this.mapDocToEntity(doc));
   }
   async assignDriver(orderId: string, driverId: string): Promise<Order | null> {
+    console.log(`[MongoOrderRepo] Assigning driver ${driverId} to order ${orderId}`);
     const doc = await OrderModel.findByIdAndUpdate(orderId, { driverId, status: 'delivering' }, { new: true });
-    if (!doc) return null;
+    if (!doc) {
+      console.error(`[MongoOrderRepo] Order ${orderId} not found for assignment`);
+      return null;
+    }
+    console.log(`[MongoOrderRepo] Order ${orderId} assigned. Driver in doc: ${doc.driverId}, Status: ${doc.status}`);
     return this.mapDocToEntity(doc);
   }
 }

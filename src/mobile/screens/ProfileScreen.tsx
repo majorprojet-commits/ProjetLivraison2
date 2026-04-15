@@ -1,8 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
-import { User, Settings, CreditCard, MapPin, Bell, LogOut, ChevronRight } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { User, Settings, CreditCard, MapPin, Bell, LogOut, ChevronRight, ShieldCheck } from 'lucide-react-native';
 
 export default function ProfileScreen() {
+  const handleLogout = () => {
+    // In a real app, clear token and redirect
+    alert('Déconnexion effectuée');
+  };
+
+  const promoteToAdmin = async () => {
+    try {
+      const res = await fetch('/api/users/promote', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer dev-token' }
+      });
+      if (res.ok) alert('Vous êtes maintenant Administrateur !');
+    } catch (e) {
+      alert('Erreur lors de la promotion');
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -10,8 +27,8 @@ export default function ProfileScreen() {
           <View style={styles.avatarContainer}>
             <Image source={{ uri: 'https://picsum.photos/seed/user/200' }} style={styles.avatar} />
           </View>
-          <Text style={styles.userName}>Jean Dupont</Text>
-          <Text style={styles.userEmail}>jean.dupont@email.com</Text>
+          <Text style={styles.userName}>Utilisateur Test</Text>
+          <Text style={styles.userEmail}>dev@example.com</Text>
         </View>
       </View>
 
@@ -23,12 +40,25 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Développeur / Admin</Text>
+        <TouchableOpacity style={styles.item} onPress={promoteToAdmin}>
+          <View style={styles.itemLeft}>
+            <View style={[styles.iconBox, { backgroundColor: '#fef2f2' }]}>
+              <ShieldCheck size={20} color="#ef4444" />
+            </View>
+            <Text style={styles.itemLabel}>Devenir Admin (Test)</Text>
+          </View>
+          <ChevronRight size={20} color="#cbd5e1" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Préférences</Text>
         <ProfileItem icon={Bell} label="Notifications" />
         <ProfileItem icon={Settings} label="Paramètres" />
       </View>
 
-      <TouchableOpacity style={styles.logoutBtn}>
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <LogOut size={20} color="#ef4444" />
         <Text style={styles.logoutText}>Déconnexion</Text>
       </TouchableOpacity>

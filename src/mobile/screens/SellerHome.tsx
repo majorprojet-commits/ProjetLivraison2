@@ -1,36 +1,113 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Package, TrendingUp, Users, Clock, ChevronRight } from 'lucide-react-native';
-import { Order } from '../types';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { Package, TrendingUp, Users, Clock, ChevronRight, RefreshCw } from 'lucide-react-native';
+import { format } from 'date-fns';
 
 export default function SellerHome() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchOrders = async () => {
+    try {
+      // In MVP, we use 'r1' as the default seller ID for the dev-token admin
+      const response = await fetch('/api/orders/seller/r1', {
+        headers: { 'Authorization': 'Bearer dev-token' }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[SellerHome] Orders fetched:', data.length);
+        setOrders(data);
+      } else {
+        console.error('[SellerHome] Fetch error:', response.status);
+      }
+    } catch (error) {
+      console.error('Fetch orders error:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 10000); // Poll every 10s for real-time feel
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer dev-token'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (response.ok) {
+        fetchOrders();
+      }
+    } catch (error) {
+      console.error('Update status error:', error);
+    }
+  };
+
+  const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
+  const dailyRevenue = orders
+    .filter(o => o.status === 'delivered' && o.date && new Date(o.date).toDateString() === new Date().toDateString())
+    .reduce((sum, o) => sum + o.total, 0);
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Dashboard Vendeur</Text>
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchOrders(); }} />
+      }
+    >
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Dashboard Vendeur</Text>
+        <TouchableOpacity onPress={() => { setIsLoading(true); fetchOrders(); }}>
+          <RefreshCw size={20} color="#8b5cf6" />
+        </TouchableOpacity>
+      </View>
 
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, { backgroundColor: '#f5f3ff' }]}>
           <TrendingUp size={24} color="#9333ea" />
-          <Text style={styles.statVal}>1,250€</Text>
+          <Text style={styles.statVal}>{dailyRevenue.toFixed(2)}€</Text>
           <Text style={styles.statLabel}>CA du jour</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: '#eff6ff' }]}>
           <Package size={24} color="#2563eb" />
-          <Text style={styles.statVal}>18</Text>
-          <Text style={styles.statLabel}>Commandes</Text>
+          <Text style={styles.statVal}>{orders.length}</Text>
+          <Text style={styles.statLabel}>Total Commandes</Text>
         </View>
       </View>
 
       {/* Active Orders Section */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Commandes Actives</Text>
-        <TouchableOpacity><Text style={styles.seeAll}>Toutes</Text></TouchableOpacity>
+        <Text style={styles.sectionTitle}>Commandes Actives ({activeOrders.length})</Text>
       </View>
 
-      <OrderCard id="8421" items="2x Whopper, 1x Fries" status="En préparation" time="12:45" />
-      <OrderCard id="8422" items="1x Steakhouse, 1x Coke" status="Prêt" time="12:50" highlight />
-      <OrderCard id="8423" items="3x Nuggets, 2x Sprite" status="En attente" time="13:05" />
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 20 }} />
+      ) : activeOrders.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Package size={48} color="#e2e8f0" />
+          <Text style={styles.emptyText}>Aucune commande active</Text>
+        </View>
+      ) : (
+        activeOrders.map(order => (
+          <OrderCard 
+            key={order.id} 
+            order={order} 
+            onUpdateStatus={handleUpdateStatus}
+          />
+        ))
+      )}
 
       {/* Quick Actions */}
       <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 16 }]}>Actions Rapides</Text>
@@ -39,43 +116,99 @@ export default function SellerHome() {
         <Text style={styles.actionText}>Modifier les horaires</Text>
         <ChevronRight size={20} color="#cbd5e1" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.actionItem}>
-        <View style={styles.actionIcon}><Users size={20} color="#64748b" /></View>
-        <Text style={styles.actionText}>Gérer le personnel</Text>
-        <ChevronRight size={20} color="#cbd5e1" />
-      </TouchableOpacity>
+
+      {/* Order History Section */}
+      <Text style={[styles.sectionTitle, { marginTop: 32, marginBottom: 16 }]}>Historique Récent</Text>
+      {orders.filter(o => o.status === 'delivered' || o.status === 'cancelled').slice(0, 10).map(order => (
+        <View key={order.id} style={styles.historyItem}>
+          <View style={styles.historyInfo}>
+            <Text style={styles.historyId}>#{order.id.slice(-4).toUpperCase()}</Text>
+            <Text style={styles.historyDate}>{order.date ? format(new Date(order.date), 'dd/MM HH:mm') : '--/--'}</Text>
+          </View>
+          <View style={styles.historyRight}>
+            <Text style={styles.historyAmount}>{order.total.toFixed(2)}€</Text>
+            <Text style={[styles.historyStatus, { color: order.status === 'delivered' ? '#22c55e' : '#ef4444' }]}>
+              {order.status === 'delivered' ? 'Livré' : 'Annulé'}
+            </Text>
+          </View>
+        </View>
+      ))}
+      {orders.filter(o => o.status === 'delivered' || o.status === 'cancelled').length === 0 && (
+        <Text style={styles.emptyHistoryText}>Aucun historique disponible</Text>
+      )}
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
-function OrderCard({ id, items, status, time, highlight }: Order) {
+function OrderCard({ order, onUpdateStatus }: { order: any, onUpdateStatus: (id: string, status: string) => void }) {
+  const itemsText = order.items.map((i: any) => `${i.quantity || 1}x ${i.name}`).join(', ');
+  const time = order.date ? format(new Date(order.date), 'HH:mm') : '--:--';
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return '#fef3c7';
+      case 'preparing': return '#dcfce7';
+      case 'ready': return '#eff6ff';
+      default: return '#f1f5f9';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'En attente';
+      case 'preparing': return 'En préparation';
+      case 'ready': return 'Prêt';
+      case 'picked_up': return 'En livraison';
+      default: return status;
+    }
+  };
+
   return (
-    <TouchableOpacity style={[styles.orderCard, highlight && styles.highlightCard]}>
+    <View style={[styles.orderCard, order.status === 'ready' && styles.highlightCard]}>
       <View style={styles.orderHeader}>
-        <Text style={styles.orderId}>#{id}</Text>
+        <Text style={styles.orderId}>#{order.id.slice(-4).toUpperCase()}</Text>
         <Text style={styles.orderTime}>{time}</Text>
       </View>
-      <Text style={styles.orderItems} numberOfLines={1}>{items}</Text>
+      <Text style={styles.orderItems} numberOfLines={2}>{itemsText}</Text>
       <View style={styles.orderFooter}>
-        <View style={[styles.statusBadge, status === 'Prêt' && styles.readyBadge]}>
-          <Text style={[styles.statusText, status === 'Prêt' && styles.readyText]}>{status}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+          <Text style={styles.statusText}>{getStatusText(order.status)}</Text>
         </View>
-        <TouchableOpacity style={styles.detailBtn}><Text style={styles.detailBtnText}>Détails</Text></TouchableOpacity>
+        
+        <View style={styles.actions}>
+          {order.status === 'pending' && (
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#8b5cf6' }]} 
+              onPress={() => onUpdateStatus(order.id, 'preparing')}
+            >
+              <Text style={styles.actionBtnText}>Accepter</Text>
+            </TouchableOpacity>
+          )}
+          {order.status === 'preparing' && (
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#22c55e' }]} 
+              onPress={() => onUpdateStatus(order.id, 'ready')}
+            >
+              <Text style={styles.actionBtnText}>Prêt</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: '900', marginBottom: 24 },
+  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  title: { fontSize: 24, fontWeight: '900' },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 32 },
   statCard: { flex: 1, padding: 16, borderRadius: 20, gap: 8 },
   statVal: { fontSize: 20, fontWeight: '900' },
   statLabel: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '900' },
-  seeAll: { color: '#8b5cf6', fontWeight: 'bold', fontSize: 12 },
   orderCard: { backgroundColor: '#f8fafc', padding: 16, borderRadius: 20, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#e2e8f0' },
   highlightCard: { borderLeftColor: '#22c55e', backgroundColor: '#f0fdf4' },
   orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
@@ -83,13 +216,32 @@ const styles = StyleSheet.create({
   orderTime: { fontSize: 12, color: '#94a3b8', fontWeight: 'bold' },
   orderItems: { fontSize: 13, color: '#64748b', marginBottom: 12 },
   orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statusBadge: { backgroundColor: '#e2e8f0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase', color: '#64748b' },
-  readyBadge: { backgroundColor: '#dcfce7' },
-  readyText: { color: '#166534' },
-  detailBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, borderColor: '#e2e8f0' },
-  detailBtnText: { fontSize: 12, fontWeight: 'bold' },
+  actions: { flexDirection: 'row', gap: 8 },
+  actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  actionBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  emptyState: { alignItems: 'center', justifyContent: 'center', padding: 40, backgroundColor: '#f8fafc', borderRadius: 24 },
+  emptyText: { marginTop: 12, color: '#94a3b8', fontWeight: 'bold' },
   actionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   actionIcon: { width: 40, height: 40, backgroundColor: '#f8fafc', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  actionText: { flex: 1, fontWeight: 'bold', fontSize: 14, color: '#334155' }
+  actionText: { flex: 1, fontWeight: 'bold', fontSize: 14, color: '#334155' },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  historyInfo: { gap: 4 },
+  historyId: { fontSize: 14, fontWeight: '900', color: '#1e293b' },
+  historyDate: { fontSize: 12, color: '#64748b' },
+  historyRight: { alignItems: 'flex-end', gap: 4 },
+  historyAmount: { fontSize: 14, fontWeight: '900', color: '#1e293b' },
+  historyStatus: { fontSize: 12, fontWeight: 'bold' },
+  emptyHistoryText: { textAlign: 'center', color: '#94a3b8', marginTop: 8, fontStyle: 'italic' }
 });

@@ -22,9 +22,13 @@ export class OrderCtrl {
   
   create = async (req: AuthRequest, res: Response) => {
     try {
+      console.log('[OrderCtrl] Creating order:', req.body);
       const data = await this.createOrder.execute({ ...req.body, userId: req.user.id });
       res.status(201).json(OrderVM.format(data));
-    } catch (e) { res.status(500).json({ error: 'Server Error' }); }
+    } catch (e) { 
+      console.error('[OrderCtrl] Create error:', e);
+      res.status(500).json({ error: 'Server Error', details: e instanceof Error ? e.message : String(e) }); 
+    }
   };
 
   getAll = async (req: AuthRequest, res: Response) => {
@@ -80,9 +84,14 @@ export class OrderCtrl {
       if (req.user.role !== 'driver' && req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Forbidden' });
       }
+      console.log(`[OrderCtrl] Fetching orders for driver ${req.user.id}`);
       const data = await this.getDriverOrders.execute(req.user.id);
+      console.log(`[OrderCtrl] Found ${data.length} orders for driver ${req.user.id}`);
       res.json(data.map(OrderVM.format));
-    } catch (e) { res.status(500).json({ error: 'Server Error' }); }
+    } catch (e) { 
+      console.error('[OrderCtrl] GetForDriver error:', e);
+      res.status(500).json({ error: 'Server Error' }); 
+    }
   };
 
   assignToDriver = async (req: AuthRequest, res: Response) => {
@@ -91,9 +100,17 @@ export class OrderCtrl {
         return res.status(403).json({ error: 'Forbidden' });
       }
       const orderId = req.params.id;
+      console.log(`[OrderCtrl] Assigning order ${orderId} to driver ${req.user.id}`);
       const data = await this.assignDriver.execute(orderId, req.user.id);
-      if (!data) return res.status(404).json({ error: 'Order not found' });
+      if (!data) {
+        console.error(`[OrderCtrl] Order ${orderId} not found for assignment`);
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      console.log(`[OrderCtrl] Order ${orderId} assigned successfully. New status: ${data.status}`);
       res.json(OrderVM.format(data));
-    } catch (e) { res.status(500).json({ error: 'Server Error' }); }
+    } catch (e) { 
+      console.error('[OrderCtrl] Assign error:', e);
+      res.status(500).json({ error: 'Server Error' }); 
+    }
   };
 }

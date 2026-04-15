@@ -12,9 +12,9 @@ const CATEGORIES: Category[] = [
 ];
 
 const SELLERS: Seller[] = [
-  { id: '1', name: 'Burger King', rating: 4.5, time: '15-25 min', fee: '2.50€', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80' },
-  { id: '2', name: 'Pizza Hut', rating: 4.2, time: '20-30 min', fee: 'Gratuit', image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80' },
-  { id: '3', name: 'Sushi Shop', rating: 4.8, time: '30-40 min', fee: '3.00€', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80' },
+  { id: 'r1', name: 'Burger & Co', rating: 4.8, time: '20-30 min', fee: '2.99€', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80' },
+  { id: 'r2', name: 'Sushi Master', rating: 4.9, time: '35-45 min', fee: 'Gratuit', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80' },
+  { id: 'r3', name: 'Pizza Napoli', rating: 4.6, time: '25-40 min', fee: '1.49€', image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80' },
 ];
 
 export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (seller: Seller) => void }) {

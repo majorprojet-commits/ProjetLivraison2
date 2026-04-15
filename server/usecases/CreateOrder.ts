@@ -20,26 +20,6 @@ export class CreateOrder {
       clientCode
     );
     const created = await this.repo.create(order);
-    
-    if (created) {
-      try {
-        const db = getDb();
-        await db.collection('orders').doc(created.id).set({
-          id: created.id,
-          userId: created.userId,
-          sellerId: created.sellerId,
-          status: created.status,
-          total: created.total,
-          pickupCode: created.pickupCode,
-          clientCode: created.clientCode,
-          createdAt: created.createdAt,
-          items: created.items
-        });
-      } catch (e) {
-        console.error("Failed to create Firestore order:", e);
-      }
-    }
-    
     return created;
   }
 }
