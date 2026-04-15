@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { CreateOrder } from '../../usecases/CreateOrder.js';
 import { GetOrders } from '../../usecases/GetOrders.js';
 import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
+import { GetOrderById } from '../../usecases/GetOrderById.js';
 import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
 import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.js';
 import { GetDriverOrders } from '../../usecases/GetDriverOrders.js';
@@ -14,6 +15,7 @@ export class OrderCtrl {
     private createOrder: CreateOrder, 
     private getOrders: GetOrders,
     private getSellerOrders: GetSellerOrders,
+    private getOrderById: GetOrderById,
     private updateOrderStatus: UpdateOrderStatus,
     private getAvailableOrders: GetAvailableOrders,
     private getDriverOrders: GetDriverOrders,
@@ -44,9 +46,14 @@ export class OrderCtrl {
 
   getAll = async (req: AuthRequest, res: Response) => {
     try {
+      console.log(`[OrderCtrl] Fetching orders for user: ${req.user.id}`);
       const data = await this.getOrders.execute(req.user.id);
+      console.log(`[OrderCtrl] Found ${data.length} orders`);
       res.json(data.map(OrderVM.format));
-    } catch (e) { res.status(500).json({ error: 'Server Error' }); }
+    } catch (e) { 
+      console.error('[OrderCtrl] GetAll error:', e);
+      res.status(500).json({ error: 'Server Error' }); 
+    }
   };
 
   getForSeller = async (req: AuthRequest, res: Response) => {
@@ -72,16 +79,16 @@ export class OrderCtrl {
       const orderId = req.params.id;
       const { status, ...extraData } = req.body;
       
-      // Fetch order to check ownership if user is a client
-      const order = await this.getOrders.execute().then(orders => orders.find(o => o.id === orderId));
+      // Fetch order by ID to check ownership/permissions
+      const order = await this.getOrderById.execute(orderId);
       if (!order) return res.status(404).json({ error: 'Order not found' });
 
       const isOwner = req.user.id === order.userId || req.user.role === 'admin';
-      const isSeller = req.user.role === 'seller' && req.user.sellerId === order.sellerId;
-      const isDriver = req.user.role === 'driver' && req.user.driverId === order.driverId;
+      const isSeller = (req.user.role === 'seller' || req.user.role === 'admin') && (req.user.role === 'admin' || req.user.sellerId === order.sellerId);
+      const isDriver = (req.user.role === 'driver' || req.user.role === 'admin') && (req.user.role === 'admin' || req.user.id === order.driverId);
 
-      if (!isOwner && !isSeller && !isDriver && req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Forbidden' });
+      if (!isOwner && !isSeller && !isDriver) {
+        return res.status(403).json({ error: 'Forbidden: You do not have permission to update this order' });
       }
 
       // Client can only cancel if pending
@@ -97,10 +104,11 @@ export class OrderCtrl {
       
       const formatted = OrderVM.format(data);
       if (req.io) {
-        console.log(`[Socket] Emitting orderUpdated for order_${orderId} to rooms`);
+        console.log(`[Socket] Emitting orderUpdated (${status}) for order_${orderId} to rooms`);
         req.io.to(`order_${orderId}`).emit('orderUpdated', formatted);
         req.io.to(`seller_${data.sellerId}`).emit('orderUpdated', formatted);
         req.io.to('admin').emit('orderUpdated', formatted);
+        
         if (status === 'ready') {
           console.log(`[Socket] Emitting orderAvailable to drivers`);
           req.io.to('drivers').emit('orderAvailable', formatted);
@@ -108,7 +116,10 @@ export class OrderCtrl {
       }
       
       res.json(formatted);
-    } catch (e) { res.status(500).json({ error: 'Server Error' }); }
+    } catch (e) { 
+      console.error('[OrderCtrl] UpdateStatus error:', e);
+      res.status(500).json({ error: 'Server Error' }); 
+    }
   };
 
   getAvailable = async (req: AuthRequest, res: Response) => {

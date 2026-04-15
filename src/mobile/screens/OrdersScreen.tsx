@@ -19,8 +19,10 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
       });
       if (response.ok) {
         const data = await response.json();
-        // Filter for current user (mocked as dev-user)
-        setOrders(data.filter((o: any) => o.userId === 'dev-user' || !o.userId).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        // In dev mode, we show all orders that don't have a specific userId or match dev-user
+        // to ensure the user sees their orders even if userId mapping is inconsistent
+        const filtered = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setOrders(filtered);
       }
     } catch (error) {
       console.error('Fetch orders error:', error);

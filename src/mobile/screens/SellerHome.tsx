@@ -43,6 +43,7 @@ export default function SellerHome() {
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     try {
+      console.log(`[SellerHome] Updating order ${orderId} to ${newStatus}`);
       const response = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 
@@ -52,7 +53,12 @@ export default function SellerHome() {
         body: JSON.stringify({ status: newStatus })
       });
       if (response.ok) {
+        console.log('[SellerHome] Status updated successfully');
         fetchData();
+      } else {
+        const err = await response.json();
+        console.error('[SellerHome] Update status failed:', err);
+        alert(`Erreur: ${err.error || 'Inconnue'}`);
       }
     } catch (error) {
       console.error('Update status error:', error);
@@ -169,9 +175,12 @@ function OrderCard({ order, onUpdateStatus }: { order: any, onUpdateStatus: (id:
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'En attente';
+      case 'accepted': return 'Acceptée';
       case 'preparing': return 'En préparation';
       case 'ready': return 'Prêt';
-      case 'picked_up': return 'En livraison';
+      case 'delivering': return 'En livraison';
+      case 'delivered': return 'Livré';
+      case 'cancelled': return 'Annulé';
       default: return status;
     }
   };
@@ -191,10 +200,18 @@ function OrderCard({ order, onUpdateStatus }: { order: any, onUpdateStatus: (id:
         <View style={styles.actions}>
           {order.status === 'pending' && (
             <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} 
+              onPress={() => onUpdateStatus(order.id, 'accepted')}
+            >
+              <Text style={styles.actionBtnText}>Accepter</Text>
+            </TouchableOpacity>
+          )}
+          {order.status === 'accepted' && (
+            <TouchableOpacity 
               style={[styles.actionBtn, { backgroundColor: '#8b5cf6' }]} 
               onPress={() => onUpdateStatus(order.id, 'preparing')}
             >
-              <Text style={styles.actionBtnText}>Accepter</Text>
+              <Text style={styles.actionBtnText}>Préparer</Text>
             </TouchableOpacity>
           )}
           {order.status === 'preparing' && (

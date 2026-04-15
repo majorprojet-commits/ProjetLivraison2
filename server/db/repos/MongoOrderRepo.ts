@@ -48,6 +48,11 @@ export class MongoOrderRepo implements IOrderRepo {
     const docs = await OrderModel.find({ sellerId }).sort({ createdAt: -1 });
     return docs.map(doc => this.mapDocToEntity(doc));
   }
+  async findById(id: string): Promise<Order | null> {
+    const doc = await OrderModel.findById(id);
+    if (!doc) return null;
+    return this.mapDocToEntity(doc);
+  }
   async updateStatus(orderId: string, status: string, extraData: any = {}): Promise<Order | null> {
     const doc = await OrderModel.findByIdAndUpdate(orderId, { status, ...extraData }, { new: true });
     if (!doc) return null;

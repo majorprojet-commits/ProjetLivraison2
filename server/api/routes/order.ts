@@ -6,6 +6,7 @@ import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
 import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
 import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.js';
 import { GetDriverOrders } from '../../usecases/GetDriverOrders.js';
+import { GetOrderById } from '../../usecases/GetOrderById.js';
 import { AssignDriver } from '../../usecases/AssignDriver.js';
 import { MongoOrderRepo } from '../../db/repos/MongoOrderRepo.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -15,6 +16,7 @@ const repo = new MongoOrderRepo();
 const createUseCase = new CreateOrder(repo);
 const getUseCase = new GetOrders(repo);
 const getSellerOrdersUseCase = new GetSellerOrders(repo);
+const getOrderByIdUseCase = new GetOrderById(repo);
 const updateOrderStatusUseCase = new UpdateOrderStatus(repo);
 const getAvailableOrdersUseCase = new GetAvailableOrders(repo);
 const getDriverOrdersUseCase = new GetDriverOrders(repo);
@@ -23,6 +25,7 @@ const ctrl = new OrderCtrl(
   createUseCase, 
   getUseCase, 
   getSellerOrdersUseCase, 
+  getOrderByIdUseCase,
   updateOrderStatusUseCase,
   getAvailableOrdersUseCase,
   getDriverOrdersUseCase,
