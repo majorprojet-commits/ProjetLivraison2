@@ -36,7 +36,10 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
         />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Categories */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
           {CATEGORIES.map(cat => (
@@ -82,6 +85,7 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  scrollContent: { paddingBottom: 20 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 },
   locationText: { fontWeight: 'bold', fontSize: 14 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', padding: 12, borderRadius: 16, gap: 10, marginBottom: 20 },

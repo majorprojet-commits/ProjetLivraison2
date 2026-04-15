@@ -42,10 +42,12 @@ export default function MobileApp() {
       </View>
       
       <View style={styles.content}>
-        {activeApp === 'client' && renderClientContent()}
-        {activeApp === 'seller' && <SellerHome />}
-        {activeApp === 'driver' && <DriverHome />}
-        {activeApp === 'profile' && <ProfileScreen />}
+        <View style={{ flex: 1 }}>
+          {activeApp === 'client' && renderClientContent()}
+          {activeApp === 'seller' && <SellerHome />}
+          {activeApp === 'driver' && <DriverHome />}
+          {activeApp === 'profile' && <ProfileScreen />}
+        </View>
       </View>
 
       <View style={styles.tabBar}>

@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* Fix for react-native-web scrolling when nested */
+.react-native-web-scrollview {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure the root div for react-native-web fills the container */
+#root > div {
+  display: flex;
+  flex-direction: column;
+}
+
 @source "../src/**/*.{ts,tsx}";
 
 @theme {

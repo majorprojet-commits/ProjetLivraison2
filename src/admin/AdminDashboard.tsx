@@ -36,7 +36,8 @@ export default function AdminDashboard({
   const [activeView, setActiveView] = useState<string>('dashboard');
   
   console.log('[AdminDashboard] Rendering with view:', activeView);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Start with false to show mock data immediately
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [sellers, setSellers] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>({
@@ -59,36 +60,34 @@ export default function AdminDashboard({
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsRefreshing(true);
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
         const [uRes, rRes] = await Promise.all([
-          fetchWithTimeout('/api/users', { headers }),
-          fetchWithTimeout('/api/sellers', { headers })
+          fetchWithTimeout('/api/users', { headers }).catch(() => null),
+          fetchWithTimeout('/api/sellers', { headers }).catch(() => null)
         ]);
 
-        if (uRes.ok) setUsers(await (uRes as any).safeJson());
-        if (rRes.ok) setSellers(await (rRes as any).safeJson());
+        if (uRes && uRes.ok) setUsers(await (uRes as any).safeJson());
+        if (rRes && rRes.ok) setSellers(await (rRes as any).safeJson());
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
-        setIsLoading(false);
+        setIsRefreshing(false);
       }
     };
     fetchData();
   }, [token]);
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-full bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-full bg-gray-50 font-sans flex">
-      {/* Render Test */}
-      <div className="hidden">AdminDashboard Loaded</div>
+      {/* Refreshing Indicator */}
+      {isRefreshing && (
+        <div className="fixed top-4 right-4 z-[100] bg-white/80 backdrop-blur-md px-4 py-2 rounded-full border border-gray-100 shadow-sm flex items-center gap-2">
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600"></div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Mise à jour...</span>
+        </div>
+      )}
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
         <div className="p-6 flex items-center gap-3 border-b border-gray-100">

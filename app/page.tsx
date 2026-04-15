@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { LayoutDashboard, Smartphone, Monitor } from 'lucide-react';
+import { LayoutDashboard, Smartphone, Monitor, ShoppingBag } from 'lucide-react';
 
 // Dynamically import MobileApp to avoid SSR issues with react-native-web
 const MobileApp = dynamic(() => import('../src/mobile/MobileApp'), { 
@@ -57,18 +57,18 @@ export default function Home() {
 
       <main className="flex-1 relative overflow-hidden">
         {view === 'admin' ? (
-          <div className="h-full overflow-auto bg-white">
+          <div className="h-full overflow-auto bg-white scrollbar-hide">
             <AdminDashboard />
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center p-8 bg-gray-900">
+          <div className="h-full flex items-center justify-center p-4 md:p-8 bg-gray-900 overflow-y-auto">
             {/* Phone Frame */}
-            <div className="relative w-[375px] h-[812px] bg-black rounded-[60px] shadow-2xl border-[8px] border-gray-800 overflow-hidden">
+            <div className="relative w-[375px] h-[812px] bg-black rounded-[60px] shadow-2xl border-[8px] border-gray-800 overflow-hidden shrink-0">
               {/* Notch */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-gray-800 rounded-b-3xl z-50" />
               
               {/* Mobile Content */}
-              <div className="w-full h-full bg-white">
+              <div className="w-full h-full bg-white flex flex-col overflow-hidden">
                 <MobileApp />
               </div>
 
@@ -76,13 +76,31 @@ export default function Home() {
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-gray-300 rounded-full z-50" />
             </div>
             
-            <div className="ml-12 max-w-xs text-white">
-              <h3 className="text-xl font-black mb-4 uppercase tracking-tight">Aperçu Mobile</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                Ceci est un rendu **React Native for Web**. 
-                Le code utilisé ici est 100% compatible avec **Expo**.
-                Vous pouvez tester la navigation et l'UI directement.
+            <div className="ml-12 hidden lg:block max-w-xs text-white">
+              <h3 className="text-xl font-black mb-4 uppercase tracking-tight">Aperçu Multi-App</h3>
+              <p className="text-sm text-gray-400 leading-relaxed mb-6">
+                Utilisez les onglets en bas de l'écran mobile pour basculer entre les interfaces **Client**, **Vendeur** et **Livreur**.
               </p>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase">App Client</p>
+                    <p className="text-[10px] text-gray-500">Commander des repas</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase">App Vendeur</p>
+                    <p className="text-[10px] text-gray-500">Gérer les commandes</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
