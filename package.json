@@ -12,6 +12,7 @@
   "dependencies": {
     "@expo/next-adapter": "^6.0.0",
     "@google/genai": "^1.29.0",
+    "@react-google-maps/api": "^2.20.8",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
     "@reduxjs/toolkit": "^2.11.2",

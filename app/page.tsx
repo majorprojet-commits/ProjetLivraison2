@@ -30,7 +30,12 @@ export default function Home() {
   const sellerId = 'r1';
 
   useEffect(() => {
-    const socket = io();
+    console.log('[Root Socket] Initializing connection...');
+    const socket = io({
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     
     socket.on('connect', () => {
       console.log('[Root Socket] Connected!', socket.id);

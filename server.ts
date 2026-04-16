@@ -3,8 +3,8 @@ import next from 'next';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
-import apiRoutes from './server/api/routes/index.js';
-import { connectDB } from './server/db/mongoose.js';
+import apiRoutes from './server/api/routes/index.ts';
+import { connectDB } from './server/db/mongoose.ts';
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
@@ -23,7 +23,10 @@ async function startServer() {
   const app = express();
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
-    cors: { origin: "*" }
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
   });
 
   const PORT = 3000;
@@ -50,6 +53,14 @@ async function startServer() {
     socket.on('join', (room) => {
       socket.join(room);
       console.log(`Socket ${socket.id} joined room: ${room}`);
+    });
+
+    socket.on('updateLocation', (data) => {
+      // data: { orderId, lat, lng, driverId }
+      console.log(`[Socket] Location update for order ${data.orderId}:`, data.lat, data.lng);
+      io.to(`order_${data.orderId}`).emit('locationUpdated', data);
+      // Also broadcast to admin for monitoring
+      io.to('admin').emit('locationUpdated', data);
     });
 
     socket.on('disconnect', () => {

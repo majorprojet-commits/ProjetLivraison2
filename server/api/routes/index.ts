@@ -4,6 +4,7 @@ import orderRoutes from './order.js';
 import userRoutes from './user.js';
 import authRoutes from './auth.js';
 import adminRoutes from './admin.js';
+import paymentRoutes from './payment.js';
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.use('/admin', adminRoutes);
 router.use('/sellers', sellerRoutes);
 router.use('/orders', orderRoutes);
 router.use('/users', userRoutes);
+router.use('/payments', paymentRoutes);
 
 // 404 handler for API
 router.use((req, res) => {

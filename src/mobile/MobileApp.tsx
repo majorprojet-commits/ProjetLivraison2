@@ -23,7 +23,9 @@ export default function MobileApp() {
   const [cart, setCart] = useState<any[]>([]);
 
   useEffect(() => {
-    const socket = io();
+    const socket = io({
+      transports: ['polling', 'websocket'],
+    });
     
     // Join relevant rooms
     socket.emit('join', 'drivers');
@@ -88,8 +90,53 @@ export default function MobileApp() {
       });
 
       if (response.ok) {
+        const order = await response.json();
         setCart([]);
-        setClientView('orders');
+        
+        // Initialize PayUnit Payment
+        try {
+          console.log('[MobileApp] Initializing PayUnit payment for order:', order.id);
+          const payRes = await fetch('/api/payments/payunit/initialize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer dev-token'
+            },
+            body: JSON.stringify({
+              amount: total,
+              currency: 'XAF',
+              orderId: order.id,
+              description: `Commande #${order.id.slice(-4).toUpperCase()} sur l'application`
+            })
+          });
+
+          const payData = await payRes.json();
+
+          if (payRes.ok) {
+            console.log('[MobileApp] PayUnit init success:', payData);
+            
+            // Try to find the transaction URL in common response fields
+            const transactionUrl = payData.transaction_url || 
+                                 (payData.data && payData.data.transaction_url) || 
+                                 payData.payment_url || 
+                                 (payData.data && payData.data.payment_url);
+
+            if (transactionUrl) {
+              console.log('[MobileApp] Redirecting to:', transactionUrl);
+              window.location.href = transactionUrl;
+            } else {
+              console.warn('[MobileApp] No transaction URL found in PayUnit response', payData);
+              setClientView('orders');
+            }
+          } else {
+            console.error('[MobileApp] PayUnit init failed:', payData);
+            alert(`Erreur Paiement: ${payData.error || payData.message || 'Échec de l\'initialisation'}`);
+            setClientView('orders');
+          }
+        } catch (payErr) {
+          console.error('[MobileApp] PayUnit error:', payErr);
+          setClientView('orders');
+        }
       } else {
         alert('Erreur lors de la commande');
       }

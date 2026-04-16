@@ -20,6 +20,7 @@ const SELLERS: Seller[] = [
 export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (seller: Seller) => void }) {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [location, setLocation] = useState('Localisation...');
 
   useEffect(() => {
     const fetchSellers = async () => {
@@ -38,6 +39,35 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
       }
     };
     fetchSellers();
+
+    // Get user location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          // In a real app, we'd use reverse geocoding here
+          // For now, let's just show the coordinates or a mock city based on coords
+          setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          
+          // Try to get a more friendly name if possible (mocking reverse geocoding)
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const data = await res.json();
+            if (data.address) {
+              const city = data.address.city || data.address.town || data.address.village || data.address.suburb;
+              const road = data.address.road;
+              setLocation(road ? `${road}, ${city || ''}` : city || 'Ma position');
+            }
+          } catch (e) {
+            console.warn('Reverse geocoding failed', e);
+          }
+        },
+        (error) => {
+          console.error('Location error:', error);
+          setLocation('Paris, France'); // Fallback
+        }
+      );
+    }
   }, []);
 
   return (
@@ -45,7 +75,7 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
       {/* Location Header */}
       <View style={styles.header}>
         <MapPin size={16} color="#8b5cf6" />
-        <Text style={styles.locationText}>Paris, France</Text>
+        <Text style={styles.locationText}>{location}</Text>
       </View>
 
       {/* Search Bar */}

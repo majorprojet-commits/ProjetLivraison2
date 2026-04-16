@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Navigation, MapPin, DollarSign, Clock, CheckCircle, RefreshCw } from 'lucide-react-native';
+import { io, Socket } from 'socket.io-client';
 
 export default function DriverHome() {
   const [availableOrders, setAvailableOrders] = useState<any[]>([]);
   const [myOrders, setMyOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   const fetchData = async () => {
     try {
@@ -18,12 +21,10 @@ export default function DriverHome() {
 
       if (availRes.ok) {
         const availData = await availRes.json();
-        console.log('[DriverHome] Available orders:', availData.length);
         setAvailableOrders(availData);
       }
       if (myRes.ok) {
         const myData = await myRes.json();
-        console.log('[DriverHome] My orders:', JSON.stringify(myData, null, 2));
         setMyOrders(myData);
       }
     } catch (error) {
@@ -37,8 +38,79 @@ export default function DriverHome() {
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+
+    // Initialize socket
+    socketRef.current = io({
+      transports: ['polling', 'websocket'],
+    });
+
+    return () => {
+      clearInterval(interval);
+      if (socketRef.current) socketRef.current.disconnect();
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    };
   }, []);
+
+  const simulationStepRef = useRef(0);
+
+  // Track location if there's an active order
+  useEffect(() => {
+    const activeOrder = myOrders.find(o => o.status === 'picked_up');
+    let simulationInterval: any = null;
+    
+    if (activeOrder && !watchIdRef.current) {
+      console.log('[DriverHome] Starting location tracking for order:', activeOrder.id);
+      
+      // Real Geolocation
+      try {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            if (socketRef.current) {
+              socketRef.current.emit('updateLocation', {
+                orderId: activeOrder.id,
+                lat: latitude,
+                lng: longitude,
+                driverId: 'dev-driver'
+              });
+            }
+          },
+          (error) => console.warn('[DriverHome] Geolocation real-time error:', error),
+          { enableHighAccuracy: true, distanceFilter: 10 }
+        );
+      } catch (e) {
+        console.warn('[DriverHome] Geolocation not supported or failed');
+      }
+
+      // Simulation for Preview (ALWAYS start this in dev mode to ensure it works)
+      const startLat = 4.0511;
+      const startLng = 9.7679;
+      simulationInterval = setInterval(() => {
+        simulationStepRef.current += 0.0005;
+        if (socketRef.current) {
+          socketRef.current.emit('updateLocation', {
+            orderId: activeOrder.id,
+            lat: startLat + simulationStepRef.current,
+            lng: startLng + (simulationStepRef.current * 0.8),
+            driverId: 'dev-driver-sim'
+          });
+        }
+      }, 2000);
+
+    } else if (!activeOrder) {
+      if (watchIdRef.current !== null) {
+        console.log('[DriverHome] Stopping location tracking');
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      if (simulationInterval) clearInterval(simulationInterval);
+      simulationStepRef.current = 0;
+    }
+
+    return () => {
+      if (simulationInterval) clearInterval(simulationInterval);
+    };
+  }, [myOrders]);
 
   const handleAcceptOrder = async (orderId: string) => {
     try {

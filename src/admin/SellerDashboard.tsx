@@ -49,7 +49,9 @@ export default function SellerDashboard({
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
-    const socket = io();
+    const socket = io({
+      transports: ['polling', 'websocket'],
+    });
     socket.emit('join', `seller_${sellerId}`);
 
     socket.on('newOrder', (order) => {
