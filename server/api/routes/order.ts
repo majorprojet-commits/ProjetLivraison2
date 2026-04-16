@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { OrderCtrl } from '../controllers/OrderCtrl.js';
 import { CreateOrder } from '../../usecases/CreateOrder.js';
 import { GetOrders } from '../../usecases/GetOrders.js';
+import { GetAllOrders } from '../../usecases/GetAllOrders.js';
 import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
 import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
 import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.js';
@@ -15,6 +16,7 @@ const router = Router();
 const repo = new MongoOrderRepo();
 const createUseCase = new CreateOrder(repo);
 const getUseCase = new GetOrders(repo);
+const getAllOrdersUseCase = new GetAllOrders(repo);
 const getSellerOrdersUseCase = new GetSellerOrders(repo);
 const getOrderByIdUseCase = new GetOrderById(repo);
 const updateOrderStatusUseCase = new UpdateOrderStatus(repo);
@@ -24,6 +26,7 @@ const assignDriverUseCase = new AssignDriver(repo);
 const ctrl = new OrderCtrl(
   createUseCase, 
   getUseCase, 
+  getAllOrdersUseCase,
   getSellerOrdersUseCase, 
   getOrderByIdUseCase,
   updateOrderStatusUseCase,

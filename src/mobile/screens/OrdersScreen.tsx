@@ -19,9 +19,12 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
       });
       if (response.ok) {
         const data = await response.json();
-        // In dev mode, we show all orders that don't have a specific userId or match dev-user
-        // to ensure the user sees their orders even if userId mapping is inconsistent
-        const filtered = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        // Sort by date (newest first)
+        const filtered = data.sort((a: any, b: any) => {
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          return dateB - dateA;
+        });
         setOrders(filtered);
       }
     } catch (error) {
@@ -36,7 +39,10 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
     fetchOrders();
     
     const socket = io();
+    socket.emit('join', 'admin'); // Join admin room to receive all updates in dev mode
+    
     socket.on('orderUpdated', (updatedOrder) => {
+      console.log('[OrdersScreen] Received order update:', updatedOrder.id, updatedOrder.status);
       setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
     });
 
@@ -105,7 +111,9 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
               <View style={styles.orderHeader}>
                 <View>
                   <Text style={styles.orderId}>Commande #{order.id.slice(-4).toUpperCase()}</Text>
-                  <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString()} à {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                  <Text style={styles.orderDate}>
+                    {order.date ? new Date(order.date).toLocaleDateString() : '--/--/----'} à {order.date ? new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                  </Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) + '20' }]}>
                   <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>{getStatusLabel(order.status)}</Text>

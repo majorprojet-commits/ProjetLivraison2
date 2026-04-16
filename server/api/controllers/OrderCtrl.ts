@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { CreateOrder } from '../../usecases/CreateOrder.js';
 import { GetOrders } from '../../usecases/GetOrders.js';
+import { GetAllOrders } from '../../usecases/GetAllOrders.js';
 import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
 import { GetOrderById } from '../../usecases/GetOrderById.js';
 import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
@@ -14,6 +15,7 @@ export class OrderCtrl {
   constructor(
     private createOrder: CreateOrder, 
     private getOrders: GetOrders,
+    private getAllOrders: GetAllOrders,
     private getSellerOrders: GetSellerOrders,
     private getOrderById: GetOrderById,
     private updateOrderStatus: UpdateOrderStatus,
@@ -46,8 +48,13 @@ export class OrderCtrl {
 
   getAll = async (req: AuthRequest, res: Response) => {
     try {
-      console.log(`[OrderCtrl] Fetching orders for user: ${req.user.id}`);
-      const data = await this.getOrders.execute(req.user.id);
+      console.log(`[OrderCtrl] Fetching orders for user: ${req.user.id} (Role: ${req.user.role})`);
+      let data;
+      if (req.user.role === 'admin') {
+        data = await this.getAllOrders.execute();
+      } else {
+        data = await this.getOrders.execute(req.user.id);
+      }
       console.log(`[OrderCtrl] Found ${data.length} orders`);
       res.json(data.map(OrderVM.format));
     } catch (e) { 

@@ -4,6 +4,7 @@ export interface IOrderRepo {
   findByUserId(userId: string): Promise<Order[]>;
   findBySellerId(sellerId: string): Promise<Order[]>;
   findById(id: string): Promise<Order | null>;
+  findAll(): Promise<Order[]>;
   updateStatus(orderId: string, status: string, extraData?: any): Promise<Order | null>;
   findAvailableForDelivery(): Promise<Order[]>;
   findByDriverId(driverId: string): Promise<Order[]>;
