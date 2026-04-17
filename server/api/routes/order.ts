@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import { OrderCtrl } from '../controllers/OrderCtrl.js';
-import { CreateOrder } from '../../usecases/CreateOrder.js';
-import { GetOrders } from '../../usecases/GetOrders.js';
-import { GetAllOrders } from '../../usecases/GetAllOrders.js';
-import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
-import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
-import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.js';
-import { GetDriverOrders } from '../../usecases/GetDriverOrders.js';
-import { GetOrderById } from '../../usecases/GetOrderById.js';
-import { AssignDriver } from '../../usecases/AssignDriver.js';
-import { MongoOrderRepo } from '../../db/repos/MongoOrderRepo.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { OrderCtrl } from '../controllers/OrderCtrl.ts';
+import { CreateOrder } from '../../usecases/CreateOrder.ts';
+import { GetOrders } from '../../usecases/GetOrders.ts';
+import { GetAllOrders } from '../../usecases/GetAllOrders.ts';
+import { GetSellerOrders } from '../../usecases/GetSellerOrders.ts';
+import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.ts';
+import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.ts';
+import { GetDriverOrders } from '../../usecases/GetDriverOrders.ts';
+import { GetOrderById } from '../../usecases/GetOrderById.ts';
+import { AssignDriver } from '../../usecases/AssignDriver.ts';
+import { MongoOrderRepo } from '../../db/repos/MongoOrderRepo.ts';
+import { authMiddleware } from '../middleware/auth.ts';
 
 const router = Router();
 const repo = new MongoOrderRepo();

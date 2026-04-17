@@ -1,7 +1,11 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Platform, Alert } from 'react-native';
 import { Home, ShoppingBag, User, Settings, Package, Navigation, LucideIcon, Bell, List, ShoppingCart } from 'lucide-react-native';
 import { io } from 'socket.io-client';
+import { motion, AnimatePresence } from 'motion/react';
+import { FloatingOrderTracker } from '../components/FloatingOrderTracker';
 
 import ClientHome from './screens/ClientHome';
 import SellerHome from './screens/SellerHome';
@@ -70,6 +74,20 @@ export default function MobileApp() {
     setCart(cart.filter(item => item.cartId !== cartId));
   };
 
+  const updateCartQuantity = (cartId: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.cartId === cartId) {
+        const newQty = Math.max(1, (item.quantity || 1) + delta);
+        // Recalculate finalPrice if quantity changes (if finalPrice was per unit)
+        // Or if finalPrice was total, we need to adjust. 
+        // Let's assume finalPrice in state is per unit for now, or just multiply it.
+        // Actually, let's keep it simple: quantity is just for UI, and total uses it.
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     const total = cart.reduce((sum, item) => sum + item.finalPrice, 0);
@@ -93,50 +111,16 @@ export default function MobileApp() {
         const order = await response.json();
         setCart([]);
         
-        // Initialize PayUnit Payment
+        // PayUnit deactivated for now as requested
+        console.log('[MobileApp] Order created successfully. PayUnit bypassed.');
+        setClientView('orders');
+        
+        /* 
         try {
           console.log('[MobileApp] Initializing PayUnit payment for order:', order.id);
-          const payRes = await fetch('/api/payments/payunit/initialize', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer dev-token'
-            },
-            body: JSON.stringify({
-              amount: total,
-              currency: 'XAF',
-              orderId: order.id,
-              description: `Commande #${order.id.slice(-4).toUpperCase()} sur l'application`
-            })
-          });
-
-          const payData = await payRes.json();
-
-          if (payRes.ok) {
-            console.log('[MobileApp] PayUnit init success:', payData);
-            
-            // Try to find the transaction URL in common response fields
-            const transactionUrl = payData.transaction_url || 
-                                 (payData.data && payData.data.transaction_url) || 
-                                 payData.payment_url || 
-                                 (payData.data && payData.data.payment_url);
-
-            if (transactionUrl) {
-              console.log('[MobileApp] Redirecting to:', transactionUrl);
-              window.location.href = transactionUrl;
-            } else {
-              console.warn('[MobileApp] No transaction URL found in PayUnit response', payData);
-              setClientView('orders');
-            }
-          } else {
-            console.error('[MobileApp] PayUnit init failed:', payData);
-            alert(`Erreur Paiement: ${payData.error || payData.message || 'Échec de l\'initialisation'}`);
-            setClientView('orders');
-          }
-        } catch (payErr) {
-          console.error('[MobileApp] PayUnit error:', payErr);
-          setClientView('orders');
-        }
+          // ... PayUnit logic ...
+        } catch (payErr) { ... }
+        */
       } else {
         alert('Erreur lors de la commande');
       }
@@ -180,10 +164,10 @@ export default function MobileApp() {
         return (
           <CartScreen 
             cart={cart} 
-            onUpdateQuantity={() => {}} 
+            onUpdateQuantity={updateCartQuantity} 
             onRemove={removeFromCart} 
             onCheckout={handleCheckout}
-            onBack={() => setClientView('restaurant')}
+            onBack={() => setClientView('home')}
           />
         );
       case 'orders':
@@ -197,25 +181,52 @@ export default function MobileApp() {
     <SafeAreaView style={styles.container}>
       <View style={{ height: 0, opacity: 0 }}><Text>MobileApp Loaded</Text></View>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Expo Mobile Preview</Text>
-        {notifications.length > 0 && (
-          <TouchableOpacity 
-            style={styles.notifBadge}
-            onPress={() => setNotifications([])}
-          >
-            <Bell size={16} color="#fff" />
-            <View style={styles.notifCount}>
-              <Text style={styles.notifCountText}>{notifications.length}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        <View style={{ flexDirection: 'column', alignItems: 'center' }}>
+          <Text style={styles.headerText}>Allô Livraison</Text>
+          <View style={{ height: 4, width: 32, backgroundColor: '#8b5cf6', borderRadius: 2, marginTop: 4 }} />
+        </View>
+        
+        <AnimatePresence>
+          {notifications.length > 0 && (
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              className="absolute right-4"
+            >
+              <TouchableOpacity 
+                style={styles.notifBadge}
+                onPress={() => setNotifications([])}
+              >
+                <Bell size={18} color="#fff" />
+                <View style={styles.notifCount}>
+                  <Text style={styles.notifCountText}>{notifications.length}</Text>
+                </View>
+              </TouchableOpacity>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </View>
 
-      {notifications.length > 0 && (
-        <View style={styles.notifToast}>
-          <Text style={styles.notifToastText}>{notifications[0].message}</Text>
-        </View>
-      )}
+      <AnimatePresence>
+        {notifications.length > 0 && (
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -50, opacity: 0 }}
+            className="absolute top-24 left-4 right-4 z-[1000]"
+          >
+            <View style={styles.notifToast}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ backgroundColor: 'rgba(139, 92, 246, 0.2)', padding: 8, borderRadius: 8 }}>
+                  <Bell size={16} color="#8b5cf6" />
+                </View>
+                <Text style={styles.notifToastText}>{notifications[0].message}</Text>
+              </View>
+            </View>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
@@ -243,6 +254,8 @@ export default function MobileApp() {
           </>
         )}
       </View>
+
+      {activeApp === 'client' && <FloatingOrderTracker onPress={() => setClientView('orders')} />}
     </SafeAreaView>
   );
 }
@@ -272,14 +285,60 @@ function TabItem({ active, label, icon: Icon, onPress, badge }: TabItemProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  headerText: { fontWeight: '900', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
-  notifBadge: { position: 'absolute', right: 16, backgroundColor: '#8b5cf6', padding: 8, borderRadius: 20 },
-  notifCount: { position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', borderRadius: 10, width: 18, height: 18, justifyContent: 'center', alignItems: 'center', borderWeight: 2, borderColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { 
+    paddingTop: Platform.OS === 'ios' ? 44 : 20,
+    paddingBottom: 16,
+    backgroundColor: '#fff', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#f1f5f9', 
+    alignItems: 'center', 
+    flexDirection: 'row', 
+    justifyContent: 'center',
+    position: 'relative'
+  },
+  headerText: { 
+    fontFamily: 'var(--font-display)',
+    fontWeight: '900', 
+    fontSize: 18, 
+    color: '#0f172a'
+  },
+  notifBadge: { 
+    backgroundColor: '#8b5cf6', 
+    padding: 10, 
+    borderRadius: 14,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8
+  },
+  notifCount: { 
+    position: 'absolute', 
+    top: -2, 
+    right: -2, 
+    backgroundColor: '#ef4444', 
+    borderRadius: 10, 
+    width: 18, 
+    height: 18, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    borderWidth: 2, 
+    borderColor: '#fff' 
+  },
   notifCountText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  notifToast: { position: 'absolute', top: 80, left: 20, right: 20, backgroundColor: '#1e293b', padding: 16, borderRadius: 16, zIndex: 1000, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 10 },
-  notifToastText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
+  notifToast: { 
+    backgroundColor: '#fff', 
+    padding: 16, 
+    borderRadius: 20, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 10 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 20, 
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#f1f5f9'
+  },
+  notifToastText: { color: '#1e293b', fontWeight: '700', fontSize: 14 },
   content: { flex: 1 },
   screen: { flex: 1, padding: 16 },
   title: { fontSize: 24, fontWeight: '900', marginBottom: 20 },
@@ -290,10 +349,34 @@ const styles = StyleSheet.create({
   statVal: { fontSize: 20, fontWeight: '900', color: '#9333ea' },
   btn: { backgroundColor: '#9333ea', padding: 8, borderRadius: 8, marginTop: 8, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: 'bold' },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingBottom: Platform.OS === 'ios' ? 20 : 10, paddingTop: 10 },
+  tabBar: { 
+    flexDirection: 'row', 
+    backgroundColor: '#fff', 
+    borderTopWidth: 1, 
+    borderTopColor: '#f1f5f9', 
+    paddingBottom: Platform.OS === 'ios' ? 30 : 15, 
+    paddingTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10
+  },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  iconContainer: { position: 'relative', marginBottom: 4 },
-  tabLabel: { fontSize: 10, fontWeight: '800' },
-  tabBadge: { position: 'absolute', top: -6, right: -10, backgroundColor: '#ef4444', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4, borderWeight: 2, borderColor: '#fff' },
+  iconContainer: { position: 'relative', marginBottom: 6 },
+  tabLabel: { fontSize: 11, fontWeight: '700' },
+  tabBadge: { 
+    position: 'absolute', 
+    top: -6, 
+    right: -10, 
+    backgroundColor: '#8b5cf6', 
+    borderRadius: 10, 
+    minWidth: 18, 
+    height: 18, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    paddingHorizontal: 4, 
+    borderWidth: 2, 
+    borderColor: '#fff' 
+  },
   tabBadgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold' }
 });

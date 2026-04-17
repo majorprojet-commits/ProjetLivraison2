@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Trash2, Plus, Minus, ShoppingCart, ArrowLeft } from 'lucide-react-native';
@@ -11,7 +13,7 @@ interface CartScreenProps {
 }
 
 export default function CartScreen({ cart, onUpdateQuantity, onRemove, onCheckout, onBack }: CartScreenProps) {
-  const total = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+  const total = cart.reduce((sum, item) => sum + (item.finalPrice * (item.quantity || 1)), 0);
 
   if (cart.length === 0) {
     return (
@@ -47,8 +49,17 @@ export default function CartScreen({ cart, onUpdateQuantity, onRemove, onCheckou
               <Text style={styles.itemPrice}>{item.finalPrice.toFixed(2)}€</Text>
             </View>
             <View style={styles.quantityControls}>
-              <TouchableOpacity onPress={() => onRemove(item.cartId)}>
-                <Trash2 size={20} color="#ef4444" />
+              <View style={styles.qtyRow}>
+                <TouchableOpacity onPress={() => onUpdateQuantity(item.cartId, -1)} style={styles.qtyBtn}>
+                  <Minus size={14} color="#64748b" />
+                </TouchableOpacity>
+                <Text style={styles.qtyText}>{item.quantity || 1}</Text>
+                <TouchableOpacity onPress={() => onUpdateQuantity(item.cartId, 1)} style={styles.qtyBtn}>
+                  <Plus size={14} color="#8b5cf6" />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity onPress={() => onRemove(item.cartId)} style={styles.removeBtn}>
+                <Trash2 size={16} color="#ef4444" />
               </TouchableOpacity>
             </View>
           </View>
@@ -79,7 +90,11 @@ const styles = StyleSheet.create({
   itemName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
   itemChoice: { fontSize: 10, color: '#64748b', marginTop: 2 },
   itemPrice: { fontSize: 14, fontWeight: '900', color: '#8b5cf6', marginTop: 4 },
-  quantityControls: { paddingLeft: 12 },
+  quantityControls: { alignItems: 'flex-end', gap: 10 },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 10, padding: 4, gap: 10 },
+  qtyBtn: { width: 24, height: 24, backgroundColor: '#fff', borderRadius: 8, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 1 },
+  qtyText: { fontSize: 14, fontWeight: 'bold', color: '#1e293b', minWidth: 16, textAlign: 'center' },
+  removeBtn: { padding: 4 },
   footer: { padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e2e8f0' },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   totalLabel: { fontSize: 16, fontWeight: '700', color: '#64748b' },

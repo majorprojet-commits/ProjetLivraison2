@@ -1,13 +1,18 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Package, TrendingUp, Users, Clock, ChevronRight, RefreshCw } from 'lucide-react-native';
 import { format } from 'date-fns';
+import { io } from 'socket.io-client';
 
 export default function SellerHome() {
   const [seller, setSeller] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'new' | 'preparing' | 'ready' | 'history'>('new');
 
   const fetchData = async () => {
     try {
@@ -37,13 +42,34 @@ export default function SellerHome() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchData, 30000); // Less frequent poll if we have sockets
+
+    const socket = io({
+      transports: ['polling', 'websocket'],
+    });
+
+    socket.emit('join', 'seller_r1');
+    socket.emit('join', 'admin');
+
+    socket.on('newOrder', (order) => {
+      console.log('[SellerHome] Socket: Nouveau commande reçue');
+      setOrders(prev => [order, ...prev.filter(o => o.id !== order.id)]);
+    });
+
+    socket.on('orderUpdated', (order) => {
+      console.log('[SellerHome] Socket: Commande mise à jour', order.id, order.status);
+      setOrders(prev => prev.map(o => o.id === order.id ? order : o));
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, []);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     try {
-      console.log(`[SellerHome] Updating order ${orderId} to ${newStatus}`);
+      console.log(`[SellerHome] Mise à jour de la commande ${orderId} vers ${newStatus}`);
       const response = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 
@@ -53,106 +79,166 @@ export default function SellerHome() {
         body: JSON.stringify({ status: newStatus })
       });
       if (response.ok) {
-        console.log('[SellerHome] Status updated successfully');
+        console.log('[SellerHome] Statut mis à jour avec succès');
+        // Auto-switch tabs based on the new status to show the movement
+        if (newStatus === 'accepted' || newStatus === 'preparing') {
+          setActiveTab('preparing');
+        } else if (newStatus === 'ready') {
+          setActiveTab('ready');
+        }
         fetchData();
       } else {
         const err = await response.json();
-        console.error('[SellerHome] Update status failed:', err);
+        console.error('[SellerHome] Échec de la mise à jour du statut:', err);
         alert(`Erreur: ${err.error || 'Inconnue'}`);
+        fetchData();
       }
     } catch (error) {
       console.error('Update status error:', error);
     }
   };
 
-  const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
+  const getFilteredOrders = () => {
+    const sorted = [...orders].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    
+    switch (activeTab) {
+      case 'new':
+        return sorted.filter(o => o.status === 'pending');
+      case 'preparing':
+        return sorted.filter(o => o.status === 'accepted' || o.status === 'preparing');
+      case 'ready':
+        return sorted.filter(o => o.status === 'ready');
+      case 'history':
+        return sorted.filter(o => ['delivered', 'cancelled', 'picked_up', 'delivering'].includes(o.status));
+      default:
+        return [];
+    }
+  };
+
+  const displayOrders = getFilteredOrders();
+
   const dailyRevenue = orders
-    .filter(o => o.status === 'delivered' && o.date && new Date(o.date).toDateString() === new Date().toDateString())
+    .filter(o => ['delivered', 'picked_up', 'delivering'].includes(o.status) && o.date && new Date(o.date).toDateString() === new Date().toDateString())
     .reduce((sum, o) => sum + o.total, 0);
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchData(); }} />
-      }
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchData(); }} />
+        }
+      >
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>{seller?.name || 'Dashboard Vendeur'}</Text>
+            <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Hub Vendeur Mobile</Text>
+          </View>
+          <TouchableOpacity onPress={() => { setIsLoading(true); fetchData(); }}>
+            <RefreshCw size={20} color="#8b5cf6" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, { backgroundColor: '#f5f3ff' }]}>
+            <TrendingUp size={24} color="#9333ea" />
+            <Text style={styles.statVal}>{dailyRevenue.toFixed(2)} €</Text>
+            <Text style={styles.statLabel}>CA du jour</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: '#eff6ff' }]}>
+            <Package size={24} color="#2563eb" />
+            <Text style={styles.statVal}>{orders.length}</Text>
+            <Text style={styles.statLabel}>Total Commandes</Text>
+          </View>
+        </View>
+
+        {/* Status Tabs */}
+        <View style={styles.tabContainer}>
+          <TabButton active={activeTab === 'new'} count={orders.filter(o => o.status === 'pending').length} label="Nouvelles" onPress={() => setActiveTab('new')} />
+          <TabButton active={activeTab === 'preparing'} count={orders.filter(o => o.status === 'accepted' || o.status === 'preparing').length} label="Préparation" onPress={() => setActiveTab('preparing')} />
+          <TabButton active={activeTab === 'ready'} count={orders.filter(o => o.status === 'ready').length} label="Prêtes" onPress={() => setActiveTab('ready')} />
+          <TabButton active={activeTab === 'history'} count={orders.filter(o => ['delivered', 'cancelled', 'picked_up', 'delivering'].includes(o.status)).length} label="Historique" onPress={() => setActiveTab('history')} />
+        </View>
+
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 40 }} />
+        ) : displayOrders.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Package size={48} color="#e2e8f0" />
+            <Text style={styles.emptyText}>Aucune commande dans cette section</Text>
+          </View>
+        ) : (
+          <View style={{ gap: 12 }}>
+            {displayOrders.map(order => (
+              activeTab === 'history' ? (
+                <HistoryItem key={order.id} order={order} />
+              ) : (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  onUpdateStatus={handleUpdateStatus}
+                />
+              )
+            ))}
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+function TabButton({ active, label, count, onPress }: { active: boolean, label: string, count: number, onPress: () => void }) {
+  return (
+    <TouchableOpacity 
+      onPress={onPress}
+      style={[styles.tabButton, active && styles.tabButtonActive]}
     >
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>{seller?.name || 'Dashboard Vendeur'}</Text>
-          <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Hub Vendeur Mobile</Text>
+      <Text style={[styles.tabButtonText, active && styles.tabButtonTextActive]}>{label}</Text>
+      {count > 0 && (
+        <View style={styles.tabBadge}>
+          <Text style={styles.tabBadgeText}>{count}</Text>
         </View>
-        <TouchableOpacity onPress={() => { setIsLoading(true); fetchData(); }}>
-          <RefreshCw size={20} color="#8b5cf6" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats Grid */}
-      <View style={styles.statsGrid}>
-        <View style={[styles.statCard, { backgroundColor: '#f5f3ff' }]}>
-          <TrendingUp size={24} color="#9333ea" />
-          <Text style={styles.statVal}>{dailyRevenue.toFixed(2)}€</Text>
-          <Text style={styles.statLabel}>CA du jour</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#eff6ff' }]}>
-          <Package size={24} color="#2563eb" />
-          <Text style={styles.statVal}>{orders.length}</Text>
-          <Text style={styles.statLabel}>Total Commandes</Text>
-        </View>
-      </View>
-
-      {/* Active Orders Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Commandes Actives ({activeOrders.length})</Text>
-      </View>
-
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 20 }} />
-      ) : activeOrders.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Package size={48} color="#e2e8f0" />
-          <Text style={styles.emptyText}>Aucune commande active</Text>
-        </View>
-      ) : (
-        activeOrders.map(order => (
-          <OrderCard 
-            key={order.id} 
-            order={order} 
-            onUpdateStatus={handleUpdateStatus}
-          />
-        ))
       )}
+    </TouchableOpacity>
+  );
+}
 
-      {/* Quick Actions */}
-      <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 16 }]}>Actions Rapides</Text>
-      <TouchableOpacity style={styles.actionItem}>
-        <View style={styles.actionIcon}><Clock size={20} color="#64748b" /></View>
-        <Text style={styles.actionText}>Modifier les horaires</Text>
-        <ChevronRight size={20} color="#cbd5e1" />
-      </TouchableOpacity>
+function HistoryItem({ order }: { order: any }) {
+  const time = order.date ? format(new Date(order.date), 'dd/MM HH:mm') : '--/--';
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'delivered': return 'Livrée';
+      case 'cancelled': return 'Annulée';
+      case 'picked_up': return 'Récupérée';
+      case 'delivering': return 'En cours';
+      default: return status;
+    }
+  };
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'delivered': return '#22c55e';
+      case 'cancelled': return '#ef4444';
+      default: return '#3b82f6';
+    }
+  };
 
-      {/* Order History Section */}
-      <Text style={[styles.sectionTitle, { marginTop: 32, marginBottom: 16 }]}>Historique Récent</Text>
-      {orders.filter(o => o.status === 'delivered' || o.status === 'cancelled').slice(0, 10).map(order => (
-        <View key={order.id} style={styles.historyItem}>
-          <View style={styles.historyInfo}>
-            <Text style={styles.historyId}>#{order.id.slice(-4).toUpperCase()}</Text>
-            <Text style={styles.historyDate}>{order.date ? format(new Date(order.date), 'dd/MM HH:mm') : '--/--'}</Text>
-          </View>
-          <View style={styles.historyRight}>
-            <Text style={styles.historyAmount}>{order.total.toFixed(2)}€</Text>
-            <Text style={[styles.historyStatus, { color: order.status === 'delivered' ? '#22c55e' : '#ef4444' }]}>
-              {order.status === 'delivered' ? 'Livré' : 'Annulé'}
-            </Text>
-          </View>
-        </View>
-      ))}
-      {orders.filter(o => o.status === 'delivered' || o.status === 'cancelled').length === 0 && (
-        <Text style={styles.emptyHistoryText}>Aucun historique disponible</Text>
-      )}
-      <View style={{ height: 40 }} />
-    </ScrollView>
+  return (
+    <View style={styles.historyItem}>
+      <View style={styles.historyInfo}>
+        <Text style={styles.historyId}>#{order.id.slice(-4).toUpperCase()}</Text>
+        <Text style={styles.historyDate}>{time}</Text>
+      </View>
+      <View style={styles.historyRight}>
+        <Text style={styles.historyAmount}>{order.total.toFixed(2)} €</Text>
+        <Text style={[styles.historyStatus, { color: getStatusColor(order.status) }]}>
+          {getStatusText(order.status)}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -247,6 +333,41 @@ const styles = StyleSheet.create({
   orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase', color: '#64748b' },
+  tabContainer: { 
+    flexDirection: 'row', 
+    backgroundColor: '#f8fafc', 
+    padding: 4, 
+    borderRadius: 14, 
+    marginBottom: 20 
+  },
+  tabButton: { 
+    flex: 1, 
+    paddingVertical: 10, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 6
+  },
+  tabButtonActive: { 
+    backgroundColor: '#fff', 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 4, 
+    elevation: 2 
+  },
+  tabButtonText: { fontSize: 11, fontWeight: 'bold', color: '#64748b' },
+  tabButtonTextActive: { color: '#8b5cf6' },
+  tabBadge: {
+    backgroundColor: '#ef4444',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   actions: { flexDirection: 'row', gap: 8 },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   actionBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },

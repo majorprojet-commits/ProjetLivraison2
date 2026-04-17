@@ -26,7 +26,10 @@ async function startServer() {
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
-    }
+    },
+    transports: ['polling', 'websocket'],
+    pingTimeout: 60000,
+    pingInterval: 25000
   });
 
   const PORT = 3000;
@@ -69,11 +72,50 @@ async function startServer() {
   });
 
   // API Routes
-  console.log('Registering API routes...');
-  app.use('/api', apiRoutes);
+  console.log('[Server] Registering API routes at /api...');
+  app.use('/api', (req, res, next) => {
+    // This logs every call that HITS the /api prefix
+    console.log(`[API CALL] ${req.method} ${req.url}`);
+    next();
+  }, apiRoutes);
+
+  // Health check for troubleshooting (explicitly on /api/health)
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      socketConnected: io.sockets.size,
+      uptime: process.uptime(),
+      time: new Date().toISOString()
+    });
+  });
+
+  // Global Error Handler for API (must be AFTER routes)
+  app.use((err: any, req: any, res: any, next: any) => {
+    const url = req.url || '';
+    if (url.startsWith('/api') || req.originalUrl?.startsWith('/api')) {
+      console.error('[API Error Detail] Path:', url, 'Error:', err);
+      return res.status(err.status || 500).json({
+        error: err.message || 'Erreur interne du serveur API',
+        path: url,
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      });
+    }
+    next(err);
+  });
 
   // Next.js handler
-  app.all('*', (req, res) => {
+  app.all(/.*/, (req, res) => {
+    const url = req.url || '';
+    const originalUrl = req.originalUrl || '';
+    
+    // ABSOLUTE BLOCK: Never serve HTML for anything starting with /api
+    if (url.startsWith('/api') || originalUrl.startsWith('/api')) {
+      console.warn(`[Server] BLOCKING API FALLTHROUGH: ${url}`);
+      return res.status(404).json({ 
+        error: `Route API ${req.method} ${url} non trouvée dans l'application Express.`,
+        hint: "Assurez-vous que la route est définie dans server/api/routes/index.ts"
+      });
+    }
     return handle(req, res);
   });
 

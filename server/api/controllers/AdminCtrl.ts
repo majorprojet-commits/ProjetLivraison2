@@ -1,11 +1,12 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.js';
-import { SellerModel } from '../../db/models/Seller.js';
-import { UserModel } from '../../db/models/User.js';
-import { OrderModel } from '../../db/models/Order.js';
-import { GlobalConfigModel } from '../../db/models/GlobalConfig.js';
-import { ZoneModel } from '../../db/models/Zone.js';
-import { DisputeModel } from '../../db/models/Dispute.js';
+import { format } from 'date-fns';
+import { AuthRequest } from '../middleware/auth.ts';
+import { SellerModel } from '../../db/models/Seller.ts';
+import { UserModel } from '../../db/models/User.ts';
+import { OrderModel } from '../../db/models/Order.ts';
+import { GlobalConfigModel } from '../../db/models/GlobalConfig.ts';
+import { ZoneModel } from '../../db/models/Zone.ts';
+import { DisputeModel } from '../../db/models/Dispute.ts';
 
 export class AdminCtrl {
   getGlobalStats = async (req: AuthRequest, res: Response) => {
@@ -23,18 +24,45 @@ export class AdminCtrl {
       
       const commissionRevenue = (totalRevenue[0]?.total || 0) * commissionRate;
 
+      const revenueHistory = await OrderModel.aggregate([
+        { $match: { status: 'delivered' } },
+        { 
+          $group: { 
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } }, 
+            amount: { $sum: "$total" } 
+          } 
+        },
+        { $sort: { "_id": 1 } },
+        { $limit: 7 }
+      ]);
+
+      const formattedHistory = revenueHistory.map(h => ({
+        date: format(new Date(h._id), 'ccc'),
+        amount: h.amount
+      }));
+
+      // Fallback if no history
+      const history = formattedHistory.length > 0 ? formattedHistory : [
+        { date: 'Lun', amount: 0 },
+        { date: 'Mar', amount: 0 },
+        { date: 'Mer', amount: 0 },
+        { date: 'Jeu', amount: 0 },
+        { date: 'Ven', amount: 0 },
+        { date: 'Sam', amount: 0 },
+        { date: 'Dim', amount: 0 }
+      ];
+
       res.json({
         totalRevenue: totalRevenue[0]?.total || 0,
         activeSellers,
         totalOrders,
         commissionRevenue,
-        revenueHistory: [
-          { date: 'Jan', amount: 85000 },
-          { date: 'Feb', amount: 92000 },
-          { date: 'Mar', amount: 125000 }
-        ]
+        revenueHistory: history
       });
-    } catch (e) { res.status(500).json({ error: 'Server Error' }); }
+    } catch (e) { 
+      console.error(e);
+      res.status(500).json({ error: 'Server Error' }); 
+    }
   };
 
   updateSellerStatus = async (req: AuthRequest, res: Response) => {

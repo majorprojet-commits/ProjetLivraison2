@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { UserCtrl } from '../controllers/UserCtrl.js';
-import { GetUser } from '../../usecases/GetUser.js';
-import { UpdateUser } from '../../usecases/UpdateUser.js';
-import { GetUsers } from '../../usecases/GetUsers.js';
-import { UpdateUserRole } from '../../usecases/UpdateUserRole.js';
-import { MongoUserRepo } from '../../db/repos/MongoUserRepo.js';
-import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
+import { UserCtrl } from '../controllers/UserCtrl.ts';
+import { GetUser } from '../../usecases/GetUser.ts';
+import { UpdateUser } from '../../usecases/UpdateUser.ts';
+import { GetUsers } from '../../usecases/GetUsers.ts';
+import { UpdateUserRole } from '../../usecases/UpdateUserRole.ts';
+import { MongoUserRepo } from '../../db/repos/MongoUserRepo.ts';
+import { authMiddleware, roleMiddleware } from '../middleware/auth.ts';
 
 const router = Router();
 const repo = new MongoUserRepo();

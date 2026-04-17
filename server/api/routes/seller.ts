@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { SellerCtrl } from '../controllers/SellerCtrl.js';
-import { GetSellers } from '../../usecases/GetSellers.js';
-import { GetSellerMenu } from '../../usecases/GetSellerMenu.js';
-import { AddDishToMenu } from '../../usecases/AddDishToMenu.js';
-import { UpdateDishAvailability } from '../../usecases/UpdateDishAvailability.js';
-import { UpdateDish } from '../../usecases/UpdateDish.js';
-import { DeleteDish } from '../../usecases/DeleteDish.js';
-import { UpdateSellerSettings } from '../../usecases/UpdateSellerSettings.js';
-import { MongoSellerRepo } from '../../db/repos/MongoSellerRepo.js';
-import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
+import { SellerCtrl } from '../controllers/SellerCtrl.ts';
+import { GetSellers } from '../../usecases/GetSellers.ts';
+import { GetSellerMenu } from '../../usecases/GetSellerMenu.ts';
+import { AddDishToMenu } from '../../usecases/AddDishToMenu.ts';
+import { UpdateDishAvailability } from '../../usecases/UpdateDishAvailability.ts';
+import { UpdateDish } from '../../usecases/UpdateDish.ts';
+import { DeleteDish } from '../../usecases/DeleteDish.ts';
+import { UpdateSellerSettings } from '../../usecases/UpdateSellerSettings.ts';
+import { MongoSellerRepo } from '../../db/repos/MongoSellerRepo.ts';
+import { authMiddleware, roleMiddleware } from '../middleware/auth.ts';
 
 const router = Router();
 const repo = new MongoSellerRepo();

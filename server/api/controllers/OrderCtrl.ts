@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
-import { CreateOrder } from '../../usecases/CreateOrder.js';
-import { GetOrders } from '../../usecases/GetOrders.js';
-import { GetAllOrders } from '../../usecases/GetAllOrders.js';
-import { GetSellerOrders } from '../../usecases/GetSellerOrders.js';
-import { GetOrderById } from '../../usecases/GetOrderById.js';
-import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.js';
-import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.js';
-import { GetDriverOrders } from '../../usecases/GetDriverOrders.js';
-import { AssignDriver } from '../../usecases/AssignDriver.js';
-import { OrderVM } from '../viewmodels/OrderVM.js';
-import { AuthRequest } from '../middleware/auth.js';
+import { CreateOrder } from '../../usecases/CreateOrder.ts';
+import { GetOrders } from '../../usecases/GetOrders.ts';
+import { GetAllOrders } from '../../usecases/GetAllOrders.ts';
+import { GetSellerOrders } from '../../usecases/GetSellerOrders.ts';
+import { GetOrderById } from '../../usecases/GetOrderById.ts';
+import { UpdateOrderStatus } from '../../usecases/UpdateOrderStatus.ts';
+import { GetAvailableOrders } from '../../usecases/GetAvailableOrders.ts';
+import { GetDriverOrders } from '../../usecases/GetDriverOrders.ts';
+import { AssignDriver } from '../../usecases/AssignDriver.ts';
+import { OrderVM } from '../viewmodels/OrderVM.ts';
+import { AuthRequest } from '../middleware/auth.ts';
 
 export class OrderCtrl {
   constructor(

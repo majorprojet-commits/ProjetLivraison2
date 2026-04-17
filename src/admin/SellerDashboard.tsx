@@ -189,6 +189,25 @@ export default function SellerDashboard({
     }
   };
 
+  const handleUpdateStatus = async (orderId: string, status: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        const updatedOrder = await res.json();
+        setOrders(orders.map(o => o.id === orderId ? updatedOrder : o));
+      }
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
+  };
+
   if (!seller) return <div className="flex items-center justify-center h-full">Chargement...</div>;
 
   return (
@@ -289,7 +308,12 @@ export default function SellerDashboard({
 
         <div className="p-8 overflow-y-auto flex-1">
           {activeView === 'dashboard' && <SellerStatsView seller={seller} orders={orders} />}
-          {activeView === 'orders' && <SellerOrdersView orders={orders} />}
+          {activeView === 'orders' && (
+            <SellerOrdersView 
+              orders={orders} 
+              onUpdateStatus={handleUpdateStatus}
+            />
+          )}
           {activeView === 'menu' && (
             <SellerMenuView 
               menu={seller.menu || []} 
@@ -470,17 +494,28 @@ export default function SellerDashboard({
 }
 
 function SellerStatsView({ seller, orders }: any) {
-  const revenue = orders.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + o.total, 0);
+  const deliveredOrders = orders.filter((o: any) => o.status === 'delivered');
+  const revenue = deliveredOrders.reduce((sum: number, o: any) => sum + o.total, 0);
   
-  const revenueData = [
-    { name: 'Lun', total: 400 },
-    { name: 'Mar', total: 300 },
-    { name: 'Mer', total: 500 },
-    { name: 'Jeu', total: 280 },
-    { name: 'Ven', total: 590 },
-    { name: 'Sam', total: 800 },
-    { name: 'Dim', total: 600 },
-  ];
+  // Calculate revenue per day for the last 7 days
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().split('T')[0];
+  });
+
+  const revenueByDay = last7Days.map(dayStr => {
+    const dayTotal = deliveredOrders
+      .filter((o: any) => o.date && o.date.startsWith(dayStr))
+      .reduce((sum: number, o: any) => sum + o.total, 0);
+    
+    return {
+      name: format(new Date(dayStr), 'ccc'),
+      total: dayTotal
+    };
+  });
+
+  const revenueData = revenueByDay;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -541,19 +576,43 @@ function SellerStatsView({ seller, orders }: any) {
   );
 }
 
-function SellerOrdersView({ orders }: { orders: any[] }) {
+function SellerOrdersView({ orders, onUpdateStatus }: { orders: any[], onUpdateStatus: (id: string, s: string) => void }) {
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  const filteredOrders = orders.filter(o => {
+    if (filter === 'all') return true;
+    if (filter === 'active') return !['delivered', 'cancelled'].includes(o.status);
+    if (filter === 'completed') return ['delivered', 'cancelled'].includes(o.status);
+    return true;
+  });
+
   return (
     <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
         <div>
           <h3 className="text-xl font-black text-gray-900">Gestion des Commandes</h3>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{orders.length} commandes au total</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{filteredOrders.length} commandes affichées</p>
         </div>
         <div className="flex gap-3">
           <div className="flex bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
-            <button className="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest bg-orange-600 text-white shadow-md">Toutes</button>
-            <button className="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600">En cours</button>
-            <button className="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600">Terminées</button>
+            <button 
+              onClick={() => setFilter('all')}
+              className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'all' ? "bg-orange-600 text-white shadow-md" : "text-gray-400 hover:text-gray-600")}
+            >
+              Toutes
+            </button>
+            <button 
+              onClick={() => setFilter('active')}
+              className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'active' ? "bg-orange-600 text-white shadow-md" : "text-gray-400 hover:text-gray-600")}
+            >
+              En cours
+            </button>
+            <button 
+              onClick={() => setFilter('completed')}
+              className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'completed' ? "bg-orange-600 text-white shadow-md" : "text-gray-400 hover:text-gray-600")}
+            >
+              Terminées
+            </button>
           </div>
         </div>
       </div>
@@ -562,7 +621,6 @@ function SellerOrdersView({ orders }: { orders: any[] }) {
           <thead>
             <tr className="bg-gray-50/50 text-left">
               <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Commande</th>
-              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Client</th>
               <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Articles</th>
               <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Total</th>
               <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Statut</th>
@@ -570,39 +628,75 @@ function SellerOrdersView({ orders }: { orders: any[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {orders.map((o: any) => (
-              <tr key={o.id} className="hover:bg-gray-50/80 transition-all group">
-                <td className="px-8 py-5">
-                  <span className="font-black text-sm text-gray-900">#{o.id.slice(-4).toUpperCase()}</span>
-                  <span className="block text-[10px] text-gray-400 font-bold">{o.date ? format(new Date(o.date), 'dd/MM HH:mm') : '--/--'}</span>
-                </td>
-                <td className="px-8 py-5">
-                  <span className="text-sm font-bold text-gray-600">Client ID: {o.userId.slice(0, 8)}</span>
-                </td>
-                <td className="px-8 py-5">
-                  <span className="text-xs font-medium text-gray-500">{o.items?.length || 0} articles</span>
-                </td>
-                <td className="px-8 py-5">
-                  <span className="font-black text-sm text-gray-900">{o.total.toFixed(2)} €</span>
-                </td>
-                <td className="px-8 py-5">
-                  <span className={cn(
-                    "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest",
-                    o.status === 'pending' ? "bg-yellow-100 text-yellow-700" :
-                    o.status === 'preparing' ? "bg-orange-100 text-orange-700" :
-                    o.status === 'ready' ? "bg-blue-100 text-blue-700" :
-                    o.status === 'delivered' ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                  )}>
-                    {o.status}
-                  </span>
-                </td>
-                <td className="px-8 py-5 text-right">
-                  <button className="p-2 text-gray-400 hover:text-orange-600 transition-colors">
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
+            {filteredOrders.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-8 py-20 text-center">
+                  <div className="flex flex-col items-center gap-4 opacity-20">
+                    <Package size={64} />
+                    <p className="font-black uppercase tracking-widest text-xs">Aucune commande trouvée</p>
+                  </div>
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredOrders.map((o: any) => (
+                <tr key={o.id} className="hover:bg-gray-50/80 transition-all group">
+                  <td className="px-8 py-5">
+                    <span className="font-black text-sm text-gray-900">#{o.id.slice(-4).toUpperCase()}</span>
+                    <span className="block text-[10px] text-gray-400 font-bold">{o.date ? format(new Date(o.date), 'dd/MM HH:mm') : '--/--'}</span>
+                  </td>
+                  <td className="px-8 py-5">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-gray-700">{o.items?.length || 0} articles</span>
+                      <span className="text-[10px] text-gray-400 truncate max-w-[200px]">{o.items?.[0]?.name}{o.items?.length > 1 ? ', ...' : ''}</span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-5">
+                    <span className="font-black text-sm text-orange-600">{o.total.toFixed(2)} €</span>
+                  </td>
+                  <td className="px-8 py-5">
+                    <span className={cn(
+                      "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest",
+                      o.status === 'pending' ? "bg-amber-100 text-amber-700" :
+                      o.status === 'accepted' ? "bg-blue-100 text-blue-700" :
+                      o.status === 'preparing' ? "bg-purple-100 text-purple-700" :
+                      o.status === 'ready' ? "bg-cyan-100 text-cyan-700" :
+                      o.status === 'delivered' ? "bg-green-100 text-green-700" :
+                      o.status === 'cancelled' ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"
+                    )}>
+                      {o.status}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex justify-end gap-2">
+                      {o.status === 'pending' && (
+                        <button 
+                          onClick={() => onUpdateStatus(o.id, 'accepted')}
+                          className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase rounded-lg shadow-sm"
+                        >
+                          Accepter
+                        </button>
+                      )}
+                      {o.status === 'accepted' && (
+                        <button 
+                          onClick={() => onUpdateStatus(o.id, 'preparing')}
+                          className="px-3 py-1.5 bg-purple-600 text-white text-[10px] font-black uppercase rounded-lg shadow-sm"
+                        >
+                          Préparer
+                        </button>
+                      )}
+                      {o.status === 'preparing' && (
+                        <button 
+                          onClick={() => onUpdateStatus(o.id, 'ready')}
+                          className="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase rounded-lg shadow-sm"
+                        >
+                          Prêt
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import { GetSellers } from '../../usecases/GetSellers.js';
-import { GetSellerMenu } from '../../usecases/GetSellerMenu.js';
-import { AddDishToMenu } from '../../usecases/AddDishToMenu.js';
-import { UpdateDishAvailability } from '../../usecases/UpdateDishAvailability.js';
-import { UpdateDish } from '../../usecases/UpdateDish.js';
-import { DeleteDish } from '../../usecases/DeleteDish.js';
-import { UpdateSellerSettings } from '../../usecases/UpdateSellerSettings.js';
-import { SellerVM } from '../viewmodels/SellerVM.js';
+import { GetSellers } from '../../usecases/GetSellers.ts';
+import { GetSellerMenu } from '../../usecases/GetSellerMenu.ts';
+import { AddDishToMenu } from '../../usecases/AddDishToMenu.ts';
+import { UpdateDishAvailability } from '../../usecases/UpdateDishAvailability.ts';
+import { UpdateDish } from '../../usecases/UpdateDish.ts';
+import { DeleteDish } from '../../usecases/DeleteDish.ts';
+import { UpdateSellerSettings } from '../../usecases/UpdateSellerSettings.ts';
+import { SellerVM } from '../viewmodels/SellerVM.ts';
 
 export class SellerCtrl {
   constructor(

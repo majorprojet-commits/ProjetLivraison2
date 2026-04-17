@@ -19,18 +19,19 @@ export class InitializePayUnitPayment {
 
     // Try multiple possible endpoints based on user documentation and common patterns
     const endpoints = [
-      'https://gateway.payunit.net/api/v2',
+      'https://api.payunit.net/api/v1',
+      'https://api.payunit.net/api/v2',
       'https://gateway.payunit.net/api/v1',
-      'https://gateway.payunit.net', // Some versions might not use /api/v2 in the base_url
-      'https://payunit.net/api/v2',
+      'https://gateway.payunit.net/api/v2',
       'https://payunit.net/api/v1',
+      'https://payunit.net/api/v2',
     ];
 
     // PayUnit documentation uses 'test' instead of 'sandbox' for the mode header
     const payunitMode = environment === 'sandbox' ? 'test' : 'live';
 
     if (environment === 'sandbox') {
-      endpoints.unshift('https://sandbox.payunit.net/api/v2');
+      endpoints.unshift('https://sandbox.api.payunit.net/api/v1');
       endpoints.unshift('https://sandbox.payunit.net/api/v1');
     }
     
@@ -51,23 +52,25 @@ export class InitializePayUnitPayment {
       console.log(`[PayUnit] Attempting initialization at ${fullUrl} (Mode: ${payunitMode})`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout per attempt
 
       try {
+        const authHeader = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
         const response = await fetch(fullUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Basic ${authHeader}`,
             'x-api-key': apiKey,
             'x-api-secret': apiSecret,
             'x-app-id': appId,
             'mode': payunitMode,
-            // Alternative headers based on user documentation
+            // Additional compatibility headers
             'api-user': apiKey,
             'api-password': apiSecret,
             'application-token': appId,
             'x-auth-token': appId,
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': 'AI-Studio-App/1.0.0'
           },
           body: JSON.stringify(payload),
           signal: controller.signal

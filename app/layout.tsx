@@ -1,13 +1,15 @@
 import React from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Outfit } from 'next/font/google';
+import { FloatingOrderTracker } from '@/src/components/FloatingOrderTracker';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-display' });
 
 export const metadata: Metadata = {
-  title: 'Multi-Seller Delivery App',
-  description: 'Admin Dashboard & Mobile Apps Preview',
+  title: 'Allô Livraison | Votre repas en un clic',
+  description: 'Commandez chez les meilleurs restaurateurs de votre ville.',
 };
 
 export default function RootLayout({
@@ -16,8 +18,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
-      <body className={inter.className}>{children}</body>
+    <html lang="fr" className={`${inter.variable} ${outfit.variable}`}>
+      <body className="font-sans antialiased text-gray-900 bg-white">
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { User, Settings, CreditCard, MapPin, Bell, LogOut, ChevronRight, ShieldCheck } from 'lucide-react-native';

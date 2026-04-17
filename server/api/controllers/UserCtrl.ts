@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { GetUser } from '../../usecases/GetUser.js';
-import { UpdateUser } from '../../usecases/UpdateUser.js';
-import { GetUsers } from '../../usecases/GetUsers.js';
-import { UpdateUserRole } from '../../usecases/UpdateUserRole.js';
-import { UserVM } from '../viewmodels/UserVM.js';
-import { AuthRequest } from '../middleware/auth.js';
+import { GetUser } from '../../usecases/GetUser.ts';
+import { UpdateUser } from '../../usecases/UpdateUser.ts';
+import { GetUsers } from '../../usecases/GetUsers.ts';
+import { UpdateUserRole } from '../../usecases/UpdateUserRole.ts';
+import { UserVM } from '../viewmodels/UserVM.ts';
+import { AuthRequest } from '../middleware/auth.ts';
 
 export class UserCtrl {
   constructor(

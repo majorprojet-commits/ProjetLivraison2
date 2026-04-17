@@ -1,7 +1,10 @@
+'use client';
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { ArrowLeft, Star, Plus, ShoppingCart, XCircle } from 'lucide-react-native';
+import { ArrowLeft, Star, Plus, ShoppingCart, XCircle, Info, Clock, Check } from 'lucide-react-native';
 import { Seller } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface RestaurantDetailProps {
   restaurant: Seller;
@@ -58,46 +61,86 @@ export default function RestaurantDetail({ restaurant, onBack, cart, onAddToCart
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.infoSection}>
-          <Text style={styles.name}>{restaurant.name}</Text>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={styles.infoSection}
+        >
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{restaurant.name}</Text>
+            <TouchableOpacity style={styles.infoBtn}>
+              <Info size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
           <View style={styles.metaRow}>
             <View style={styles.ratingBox}>
               <Star size={14} color="#fbbf24" fill="#fbbf24" />
               <Text style={styles.ratingText}>{restaurant.rating}</Text>
             </View>
-            <Text style={styles.metaText}>{restaurant.deliveryTime || restaurant.time} • {restaurant.deliveryFee !== undefined ? `${restaurant.deliveryFee}€` : restaurant.fee}</Text>
+            <View style={styles.timeBadge}>
+              <Clock size={14} color="#8b5cf6" />
+              <Text style={styles.timeBadgeText}>
+                {restaurant.deliveryTime || restaurant.time}
+              </Text>
+            </View>
+            <Text style={styles.metaText}>{restaurant.deliveryFee !== undefined ? `${restaurant.deliveryFee}€` : restaurant.fee}</Text>
           </View>
-        </View>
+        </motion.div>
 
         <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Menu</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Menu</Text>
+            <View style={styles.sectionLine} />
+          </View>
+          
           {(!restaurant.menu || restaurant.menu.length === 0) ? (
-            <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#94a3b8', fontStyle: 'italic' }}>Aucun plat disponible pour le moment.</Text>
+            <View style={styles.emptyMenu}>
+              <ShoppingCart size={48} color="#94a3b8" />
+              <Text style={styles.emptyMenuText}>Aucun plat disponible pour le moment.</Text>
             </View>
-          ) : restaurant.menu.map(item => (
-            <TouchableOpacity 
-              key={item.id} 
-              style={[styles.menuItem, item.available === false && { opacity: 0.5 }]}
-              onPress={() => handleItemPress(item)}
-              disabled={item.available === false}
-            >
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
-                <Text style={styles.itemPrice}>{item.price.toFixed(2)} €</Text>
-                {item.available === false && (
-                  <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold', marginTop: 4 }}>ÉPUISÉ</Text>
-                )}
-              </View>
-              <View style={styles.itemRight}>
-                <Image source={{ uri: item.image }} style={styles.itemImage} />
-                <View style={[styles.addBtn, item.available === false && { backgroundColor: '#94a3b8' }]}>
-                  <Plus size={20} color="#fff" />
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+          ) : (
+            <View style={{ gap: 8 }}>
+              {restaurant.menu.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <TouchableOpacity 
+                    style={[styles.menuItem, item.available === false && { opacity: 0.5 }]}
+                    onPress={() => handleItemPress(item)}
+                    disabled={item.available === false}
+                  >
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
+                      <Text style={styles.itemPrice}>{item.price.toFixed(2)} €</Text>
+                      {item.available === false && (
+                        <View style={styles.soldOutBadge}>
+                          <Text style={styles.soldOutText}>ÉPUISÉ</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.itemRight}>
+                      <Image source={{ uri: item.image }} style={styles.itemImage} />
+                      <AnimatePresence>
+                        <motion.div 
+                          whileTap={{ scale: 0.9 }}
+                          style={{
+                            ...styles.addBtn,
+                            ...(item.available === false ? { backgroundColor: '#94a3b8' } : {})
+                          }}
+                        >
+                          <Plus size={20} color="#fff" />
+                        </motion.div>
+                      </AnimatePresence>
+                    </View>
+                  </TouchableOpacity>
+                </motion.div>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -180,22 +223,32 @@ const styles = StyleSheet.create({
   backBtn: { position: 'absolute', top: 40, left: 20, zIndex: 10, backgroundColor: '#fff', padding: 8, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 },
   content: { flex: 1, marginTop: -20, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
   infoSection: { marginBottom: 24 },
-  name: { fontSize: 24, fontWeight: '900', marginBottom: 8 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  nameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  name: { fontSize: 28, fontWeight: '900', color: '#1e293b' },
+  infoBtn: { padding: 8, backgroundColor: '#f1f5f9', borderRadius: 20 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   ratingText: { fontSize: 14, fontWeight: 'bold', color: '#92400e' },
-  metaText: { fontSize: 14, color: '#64748b', fontWeight: '500' },
-  menuSection: { marginBottom: 100 },
-  sectionTitle: { fontSize: 20, fontWeight: '900', marginBottom: 16 },
-  menuItem: { flexDirection: 'row', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  itemInfo: { flex: 1, paddingRight: 12 },
-  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  itemDesc: { fontSize: 13, color: '#64748b', marginBottom: 8 },
-  itemPrice: { fontSize: 15, fontWeight: '900', color: '#8b5cf6' },
+  timeBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f5f3ff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
+  timeBadgeText: { color: '#8b5cf6', fontSize: 13, fontWeight: '700' },
+  metaText: { fontSize: 14, color: '#64748b', fontWeight: '700' },
+  menuSection: { marginBottom: 120 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
+  sectionTitle: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
+  sectionLine: { flex: 1, height: 2, backgroundColor: '#f1f5f9', borderRadius: 1 },
+  emptyMenu: { py: 80, alignItems: 'center', opacity: 0.4 },
+  emptyMenuText: { marginTop: 16, fontWeight: '500', fontStyle: 'italic', color: '#64748b' },
+  menuItem: { flexDirection: 'row', paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
+  itemInfo: { flex: 1, paddingRight: 16 },
+  itemName: { fontSize: 17, fontWeight: '800', color: '#0f172a', marginBottom: 6 },
+  itemDesc: { fontSize: 13, color: '#64748b', lineHeight: 18, marginBottom: 10 },
+  itemPrice: { fontSize: 16, fontWeight: '900', color: '#000' },
+  soldOutBadge: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: '#fef2f2', px: 8, py: 2, borderRadius: 4 },
+  soldOutText: { color: '#ef4444', fontSize: 10, fontWeight: '800' },
   itemRight: { position: 'relative' },
-  itemImage: { width: 80, height: 80, borderRadius: 12 },
-  addBtn: { position: 'absolute', bottom: -8, right: -8, backgroundColor: '#8b5cf6', padding: 6, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
-  cartBar: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#8b5cf6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 20, shadowColor: '#8b5cf6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 10 },
+  itemImage: { width: 90, height: 90, borderRadius: 20 },
+  addBtn: { position: 'absolute', bottom: -8, right: -8, backgroundColor: '#000', padding: 8, borderRadius: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 5 },
+  cartBar: { position: 'absolute', bottom: 30, left: 16, right: 16, backgroundColor: '#8b5cf6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: 24, shadowColor: '#8b5cf6', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 15, elevation: 10 },
   cartInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cartText: { color: '#fff', fontWeight: '900', fontSize: 16 },
   cartTotal: { color: '#fff', fontWeight: '900', fontSize: 16 },

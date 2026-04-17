@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { AdminCtrl } from '../controllers/AdminCtrl.js';
-import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
+import { AdminCtrl } from '../controllers/AdminCtrl.ts';
+import { authMiddleware, roleMiddleware } from '../middleware/auth.ts';
 
 const router = Router();
 const ctrl = new AdminCtrl();

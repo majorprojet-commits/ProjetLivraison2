@@ -40,6 +40,7 @@ export default function AdminDashboard({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [sellers, setSellers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>({
     totalRevenue: 154200,
     activeSellers: 42,
@@ -63,13 +64,17 @@ export default function AdminDashboard({
       setIsRefreshing(true);
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        const [uRes, rRes] = await Promise.all([
+        const [uRes, rRes, sRes, oRes] = await Promise.all([
           fetchWithTimeout('/api/users', { headers }).catch(() => null),
-          fetchWithTimeout('/api/sellers', { headers }).catch(() => null)
+          fetchWithTimeout('/api/sellers', { headers }).catch(() => null),
+          fetchWithTimeout('/api/admin/stats', { headers }).catch(() => null),
+          fetchWithTimeout('/api/orders', { headers }).catch(() => null)
         ]);
 
         if (uRes && uRes.ok) setUsers(await (uRes as any).safeJson());
         if (rRes && rRes.ok) setSellers(await (rRes as any).safeJson());
+        if (sRes && sRes.ok) setAnalytics(await (sRes as any).safeJson());
+        if (oRes && oRes.ok) setOrders(await (oRes as any).safeJson());
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
@@ -99,6 +104,7 @@ export default function AdminDashboard({
 
         <nav className="flex-1 p-4 space-y-1">
           <NavItem active={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} icon={BarChart3} label="Dashboard" />
+          <NavItem active={activeView === 'orders'} onClick={() => setActiveView('orders')} icon={ShoppingBag} label="Commandes" />
           <NavItem active={activeView === 'restaurants'} onClick={() => setActiveView('restaurants')} icon={Store} label="Vendeurs" />
           <NavItem active={activeView === 'users'} onClick={() => setActiveView('users')} icon={Users} label="Utilisateurs" />
           <NavItem active={activeView === 'commissions'} onClick={() => setActiveView('commissions')} icon={DollarSign} label="Commissions" />
@@ -119,6 +125,7 @@ export default function AdminDashboard({
             <div>
               <h2 className="text-xl font-black text-gray-900 tracking-tight">
                 {activeView === 'dashboard' && "Vue d'ensemble"}
+                {activeView === 'orders' && "Gestion des Commandes"}
                 {activeView === 'restaurants' && "Gestion des Vendeurs"}
                 {activeView === 'users' && "Gestion des Utilisateurs"}
                 {activeView === 'commissions' && "Configuration Commissions"}
@@ -152,6 +159,7 @@ export default function AdminDashboard({
 
         <div className="p-8 overflow-y-auto flex-1">
           {activeView === 'dashboard' && <SuperAdminDashboard analytics={analytics} />}
+          {activeView === 'orders' && <OrdersManagement orders={orders} />}
           {activeView === 'restaurants' && <SellersManagement sellers={sellers} />}
           {activeView === 'users' && <UsersManagement users={users} />}
           {activeView === 'commissions' && <CommissionsManagement />}
@@ -565,6 +573,70 @@ interface StatCardProps {
   icon: any;
   trend: string;
   color: 'orange' | 'blue' | 'green' | 'red' | 'violet';
+}
+
+function OrdersManagement({ orders }: { orders: any[] }) {
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  const filteredOrders = orders.filter(o => {
+    if (filter === 'all') return true;
+    if (filter === 'active') return !['delivered', 'cancelled'].includes(o.status);
+    if (filter === 'completed') return ['delivered', 'cancelled'].includes(o.status);
+    return true;
+  });
+
+  return (
+    <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+        <div>
+          <h3 className="text-xl font-black text-gray-900">Toutes les Commandes</h3>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{filteredOrders.length} commandes filtrées</p>
+        </div>
+        <div className="flex bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+          <button onClick={() => setFilter('all')} className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'all' ? "bg-violet-600 text-white shadow-md" : "text-gray-400")}>Toutes</button>
+          <button onClick={() => setFilter('active')} className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'active' ? "bg-violet-600 text-white shadow-md" : "text-gray-400")}>En cours</button>
+          <button onClick={() => setFilter('completed')} className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'completed' ? "bg-violet-600 text-white shadow-md" : "text-gray-400")}>Terminées</button>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50/50 text-left">
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic serif">Commande</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic serif">Vendeur</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic serif">Date</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic serif">Statut</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic serif text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {filteredOrders.map((o: any) => (
+              <tr key={o.id} className="hover:bg-gray-50/80 transition-all group">
+                <td className="px-8 py-5 font-black text-sm text-gray-900">#{o.id.slice(-4).toUpperCase()}</td>
+                <td className="px-8 py-5 font-bold text-xs text-gray-600 truncate max-w-[150px]">{o.sellerId}</td>
+                <td className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{o.date ? format(new Date(o.date), 'dd/MM HH:mm') : '--/--'}</td>
+                <td className="px-8 py-5">
+                  <span className={cn(
+                    "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest",
+                    o.status === 'pending' ? "bg-amber-100 text-amber-700" :
+                    o.status === 'delivered' ? "bg-green-100 text-green-700" :
+                    o.status === 'cancelled' ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                  )}>
+                    {o.status}
+                  </span>
+                </td>
+                <td className="px-8 py-5 text-right">
+                   <button className="text-gray-400 hover:text-violet-600 transition-colors">
+                     <Edit3 className="w-4 h-4" />
+                   </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
