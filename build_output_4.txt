@@ -1,0 +1,20 @@
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+   ▲ Next.js 15.5.15
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 6.6s
+   Linting and checking validity of types ...
+ ⨯ ESLint: Converting circular structure to JSON     --> starting at object with constructor 'Object'     |     property 'configs' -> object with constructor 'Object'     |     property 'flat' -> object with constructor 'Object'     |     ...     |     property 'plugins' -> object with constructor 'Object'     --- property 'react' closes the circle Referenced from: /app/applet/.eslintrc.json
+Failed to compile.
+
+./src/apps/AdminApp.tsx:17:78
+Type error: Cannot find module 'react-leaflet' or its corresponding type declarations.
+
+[0m [90m 15 |[39m   [33mLineChart[39m[33m,[39m [33mLine[39m[33m,[39m [33mPieChart[39m[33m,[39m [33mPie[39m[33m,[39m [33mCell[39m[33m,[39m [33mAreaChart[39m[33m,[39m [33mArea[39m
+ [90m 16 |[39m } [36mfrom[39m [32m'recharts'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 17 |[39m [36mimport[39m { [33mMapContainer[39m[33m,[39m [33mTileLayer[39m[33m,[39m [33mPolygon[39m[33m,[39m [33mFeatureGroup[39m[33m,[39m useMapEvents } [36mfrom[39m [32m'react-leaflet'[39m[33m;[39m
+ [90m    |[39m                                                                              [31m[1m^[22m[39m
+ [90m 18 |[39m [36mimport[39m { [33mEditControl[39m } [36mfrom[39m [32m"react-leaflet-draw"[39m[33m;[39m
+ [90m 19 |[39m [36mimport[39m [32m"leaflet-draw/dist/leaflet.draw.css"[39m[33m;[39m
+ [90m 20 |[39m [36mimport[39m { format } [36mfrom[39m [32m'date-fns'[39m[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

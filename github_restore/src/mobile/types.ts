@@ -1,0 +1,40 @@
+export interface Seller {
+  id: string;
+  _id?: string;
+  name: string;
+  rating: number;
+  time?: string;
+  fee?: string;
+  deliveryTime?: string;
+  deliveryFee?: number;
+  image: string;
+  type?: 'restaurant' | 'clothing' | 'supermarket' | 'other';
+  menu?: any[];
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  icon: string;
+}
+
+export interface Order {
+  id: string;
+  items: string;
+  status: string;
+  time: string;
+  highlight?: boolean;
+}
+
+export interface DriverOffer {
+  restaurant: string;
+  distance: string;
+  payout: string;
+  address: string;
+}
+
+export interface HistoryItem {
+  restaurant: string;
+  time: string;
+  amount: string;
+}

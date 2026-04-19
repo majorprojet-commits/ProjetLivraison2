@@ -1,0 +1,19 @@
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+   ▲ Next.js 15.5.15
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 18.8s
+   Linting and checking validity of types ...
+ ⨯ ESLint: Converting circular structure to JSON     --> starting at object with constructor 'Object'     |     property 'configs' -> object with constructor 'Object'     |     property 'flat' -> object with constructor 'Object'     |     ...     |     property 'plugins' -> object with constructor 'Object'     --- property 'react' closes the circle Referenced from: /app/applet/.eslintrc.json
+Failed to compile.
+
+./server/api/routes/seller.ts:2:10
+Type error: Module '"../controllers/SellerCtrl.js"' has no exported member 'SellerCtrl'.
+
+[0m [90m 1 |[39m [36mimport[39m { [33mRouter[39m } [36mfrom[39m [32m'express'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m [36mimport[39m { [33mSellerCtrl[39m } [36mfrom[39m [32m'../controllers/SellerCtrl.js'[39m[33m;[39m
+ [90m   |[39m          [31m[1m^[22m[39m
+ [90m 3 |[39m [36mimport[39m { [33mGetSellers[39m } [36mfrom[39m [32m'../../usecases/GetSellers.js'[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m { [33mGetSellerMenu[39m } [36mfrom[39m [32m'../../usecases/GetSellerMenu.js'[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mAddDishToMenu[39m } [36mfrom[39m [32m'../../usecases/AddDishToMenu.js'[39m[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

@@ -34,7 +34,7 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
   const [driverLocation, setDriverLocation] = useState<{ lat: number, lng: number } | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [activeTab, setActiveTab] = useState<'all' | 'cooking' | 'delivery' | 'history'>('all');
 
   const fetchOrders = async () => {
     try {
@@ -143,10 +143,20 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
     }
   };
 
-  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
-  const historyOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
+  const getFilteredOrders = () => {
+    switch (activeTab) {
+      case 'cooking':
+        return orders.filter(o => ['pending', 'accepted', 'preparing'].includes(o.status));
+      case 'delivery':
+        return orders.filter(o => ['ready', 'picked_up', 'delivering'].includes(o.status));
+      case 'history':
+        return orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
+      default:
+        return orders;
+    }
+  };
 
-  const displayOrders = activeTab === 'active' ? activeOrders : historyOrders;
+  const displayOrders = getFilteredOrders();
 
   const sortedOrders = [...displayOrders].sort((a, b) => {
     const statusOrder: Record<string, number> = {
@@ -186,19 +196,33 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
         </View>
 
         {/* Tabs */}
-        <View style={styles.tabsRow}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'active' && styles.activeTab]} 
-            onPress={() => setActiveTab('active')}
-          >
-            <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>En cours ({activeOrders.length})</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'history' && styles.activeTab]} 
-            onPress={() => setActiveTab('history')}
-          >
-            <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>Historique</Text>
-          </TouchableOpacity>
+        <View style={styles.tabsWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'all' && styles.activeTab]} 
+              onPress={() => setActiveTab('all')}
+            >
+              <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>Toutes ({orders.length})</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'cooking' && styles.activeTab]} 
+              onPress={() => setActiveTab('cooking')}
+            >
+              <Text style={[styles.tabText, activeTab === 'cooking' && styles.activeTabText]}>En cuisine ({orders.filter(o => ['pending', 'accepted', 'preparing'].includes(o.status)).length})</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'delivery' && styles.activeTab]} 
+              onPress={() => setActiveTab('delivery')}
+            >
+              <Text style={[styles.tabText, activeTab === 'delivery' && styles.activeTabText]}>En livraison ({orders.filter(o => ['ready', 'picked_up', 'delivering'].includes(o.status)).length})</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'history' && styles.activeTab]} 
+              onPress={() => setActiveTab('history')}
+            >
+              <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>Historique ({orders.filter(o => ['delivered', 'cancelled'].includes(o.status)).length})</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
         {displayOrders.length === 0 ? (
@@ -378,11 +402,12 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { padding: 20, paddingBottom: 10 },
   title: { fontSize: 24, fontWeight: '900', color: '#1e293b', fontFamily: 'var(--font-display)' },
-  tabsRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 10, gap: 20 },
-  tab: { paddingVertical: 8, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+  tabsWrapper: { marginBottom: 10 },
+  tabsRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 20 },
+  tab: { paddingVertical: 12, borderBottomWidth: 3, borderBottomColor: 'transparent', minWidth: 80, alignItems: 'center' },
   activeTab: { borderBottomColor: '#8b5cf6' },
-  tabText: { fontSize: 14, fontWeight: 'bold', color: '#94a3b8' },
-  activeTabText: { color: '#1e293b' },
+  tabText: { fontSize: 13, fontWeight: 'bold', color: '#94a3b8' },
+  activeTabText: { color: '#8b5cf6' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, marginTop: 40 },
   emptyIconContainer: { backgroundColor: '#f5f3ff', padding: 32, borderRadius: 100, marginBottom: 24 },
   emptyText: { fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: 'center' },

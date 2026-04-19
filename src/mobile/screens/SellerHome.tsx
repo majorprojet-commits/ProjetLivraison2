@@ -12,7 +12,7 @@ export default function SellerHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'new' | 'preparing' | 'ready' | 'history'>('new');
+  const [activeTab, setActiveTab] = useState<'new' | 'preparing' | 'ready' | 'delivery' | 'history'>('new');
 
   const fetchData = async () => {
     try {
@@ -108,8 +108,10 @@ export default function SellerHome() {
         return sorted.filter(o => o.status === 'accepted' || o.status === 'preparing');
       case 'ready':
         return sorted.filter(o => o.status === 'ready');
+      case 'delivery':
+        return sorted.filter(o => o.status === 'picked_up' || o.status === 'delivering');
       case 'history':
-        return sorted.filter(o => ['delivered', 'cancelled', 'picked_up', 'delivering'].includes(o.status));
+        return sorted.filter(o => ['delivered', 'cancelled'].includes(o.status));
       default:
         return [];
     }
@@ -155,11 +157,18 @@ export default function SellerHome() {
         </View>
 
         {/* Status Tabs */}
-        <View style={styles.tabContainer}>
-          <TabButton active={activeTab === 'new'} count={orders.filter(o => o.status === 'pending').length} label="Nouvelles" onPress={() => setActiveTab('new')} />
-          <TabButton active={activeTab === 'preparing'} count={orders.filter(o => o.status === 'accepted' || o.status === 'preparing').length} label="Préparation" onPress={() => setActiveTab('preparing')} />
-          <TabButton active={activeTab === 'ready'} count={orders.filter(o => o.status === 'ready').length} label="Prêtes" onPress={() => setActiveTab('ready')} />
-          <TabButton active={activeTab === 'history'} count={orders.filter(o => ['delivered', 'cancelled', 'picked_up', 'delivering'].includes(o.status)).length} label="Historique" onPress={() => setActiveTab('history')} />
+        <View style={styles.tabWrapper}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.tabContainer}
+          >
+            <TabButton active={activeTab === 'new'} count={orders.filter(o => o.status === 'pending').length} label="Nouvelles" onPress={() => setActiveTab('new')} />
+            <TabButton active={activeTab === 'preparing'} count={orders.filter(o => o.status === 'accepted' || o.status === 'preparing').length} label="En préparation" onPress={() => setActiveTab('preparing')} />
+            <TabButton active={activeTab === 'ready'} count={orders.filter(o => o.status === 'ready').length} label="Prêtes" onPress={() => setActiveTab('ready')} />
+            <TabButton active={activeTab === 'delivery'} count={orders.filter(o => ['picked_up', 'delivering'].includes(o.status)).length} label="Course" onPress={() => setActiveTab('delivery')} />
+            <TabButton active={activeTab === 'history'} count={orders.filter(o => ['delivered', 'cancelled'].includes(o.status)).length} label="Historique" onPress={() => setActiveTab('history')} />
+          </ScrollView>
         </View>
 
         {isLoading ? (
@@ -324,40 +333,54 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '900' },
-  orderCard: { backgroundColor: '#f8fafc', padding: 16, borderRadius: 20, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#e2e8f0' },
+  orderCard: { 
+    backgroundColor: '#fff', 
+    padding: 18, 
+    borderRadius: 24, 
+    marginBottom: 16, 
+    borderLeftWidth: 6, 
+    borderLeftColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2
+  },
   highlightCard: { borderLeftColor: '#22c55e', backgroundColor: '#f0fdf4' },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  orderId: { fontWeight: '900', fontSize: 14 },
-  orderTime: { fontSize: 12, color: '#94a3b8', fontWeight: 'bold' },
-  orderItems: { fontSize: 13, color: '#64748b', marginBottom: 12 },
-  orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase', color: '#64748b' },
+  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' },
+  orderId: { fontWeight: '900', fontSize: 16, color: '#1e293b' },
+  orderTime: { fontSize: 13, color: '#64748b', fontWeight: 'bold', backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  orderItems: { fontSize: 14, color: '#475569', marginBottom: 16, lineHeight: 20, fontWeight: '500' },
+  orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  statusText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', color: '#64748b' },
+  tabWrapper: { marginBottom: 20 },
   tabContainer: { 
     flexDirection: 'row', 
-    backgroundColor: '#f8fafc', 
-    padding: 4, 
-    borderRadius: 14, 
-    marginBottom: 20 
+    backgroundColor: '#f1f5f9', 
+    padding: 6, 
+    borderRadius: 18,
+    gap: 8
   },
   tabButton: { 
-    flex: 1, 
-    paddingVertical: 10, 
+    paddingHorizontal: 20,
+    paddingVertical: 12, 
     alignItems: 'center', 
     justifyContent: 'center', 
-    borderRadius: 12,
+    borderRadius: 14,
     flexDirection: 'row',
-    gap: 6
+    gap: 8,
+    minWidth: 120
   },
   tabButtonActive: { 
     backgroundColor: '#fff', 
     shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
+    shadowOffset: { width: 0, height: 4 }, 
     shadowOpacity: 0.1, 
-    shadowRadius: 4, 
-    elevation: 2 
+    shadowRadius: 8, 
+    elevation: 4 
   },
-  tabButtonText: { fontSize: 11, fontWeight: 'bold', color: '#64748b' },
+  tabButtonText: { fontSize: 13, fontWeight: 'bold', color: '#94a3b8' },
   tabButtonTextActive: { color: '#8b5cf6' },
   tabBadge: {
     backgroundColor: '#ef4444',

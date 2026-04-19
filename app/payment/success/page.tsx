@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function PaymentSuccessPage() {
+function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
@@ -15,7 +15,7 @@ export default function PaymentSuccessPage() {
       <CheckCircle2 size={80} color="#22c55e" />
       <Text style={styles.title}>Paiement Réussi !</Text>
       <Text style={styles.subtitle}>
-        Votre commande #{orderId?.slice(-4).toUpperCase()} a été payée avec succès via PayUnit.
+        Votre commande #{orderId?.slice(-4).toUpperCase() || '...'} a été payée avec succès via PayUnit.
       </Text>
       
       <TouchableOpacity 
@@ -25,6 +25,14 @@ export default function PaymentSuccessPage() {
         <Text style={styles.buttonText}>Retour à l'accueil</Text>
       </TouchableOpacity>
     </View>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<View style={styles.container}><Text>Chargement...</Text></View>}>
+      <SuccessContent />
+    </Suspense>
   );
 }
 

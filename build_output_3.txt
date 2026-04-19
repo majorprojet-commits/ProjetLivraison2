@@ -1,0 +1,19 @@
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+   ▲ Next.js 15.5.15
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 6.8s
+   Linting and checking validity of types ...
+ ⨯ ESLint: Converting circular structure to JSON     --> starting at object with constructor 'Object'     |     property 'configs' -> object with constructor 'Object'     |     property 'flat' -> object with constructor 'Object'     |     ...     |     property 'plugins' -> object with constructor 'Object'     --- property 'react' closes the circle Referenced from: /app/applet/.eslintrc.json
+Failed to compile.
+
+./server/api/routes/user.ts:2:10
+Type error: Module '"../controllers/UserCtrl.js"' has no exported member 'UserCtrl'.
+
+[0m [90m 1 |[39m [36mimport[39m { [33mRouter[39m } [36mfrom[39m [32m'express'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m [36mimport[39m { [33mUserCtrl[39m } [36mfrom[39m [32m'../controllers/UserCtrl.js'[39m[33m;[39m
+ [90m   |[39m          [31m[1m^[22m[39m
+ [90m 3 |[39m [36mimport[39m { [33mGetUser[39m } [36mfrom[39m [32m'../../usecases/GetUser.js'[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m { [33mUpdateUser[39m } [36mfrom[39m [32m'../../usecases/UpdateUser.js'[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { [33mGetUsers[39m } [36mfrom[39m [32m'../../usecases/GetUsers.js'[39m[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

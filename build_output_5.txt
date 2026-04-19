@@ -1,0 +1,20 @@
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+   ▲ Next.js 15.5.15
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 7.7s
+   Linting and checking validity of types ...
+ ⨯ ESLint: Converting circular structure to JSON     --> starting at object with constructor 'Object'     |     property 'configs' -> object with constructor 'Object'     |     property 'flat' -> object with constructor 'Object'     |     ...     |     property 'plugins' -> object with constructor 'Object'     --- property 'react' closes the circle Referenced from: /app/applet/.eslintrc.json
+Failed to compile.
+
+./src/apps/ClientApp.tsx:447:30
+Type error: This comparison appears to be unintentional because the types '"default" | "time" | "rating"' and '"favorites"' have no overlap.
+
+[0m [90m 445 |[39m     [36mconst[39m matchesDietary [33m=[39m [33m![39mdietaryFilter [33m||[39m r[33m.[39mtags[33m.[39msome((tag[33m:[39m string) [33m=>[39m tag[33m.[39mtoLowerCase() [33m===[39m dietaryFilter[33m.[39mtoLowerCase())[33m;[39m
+ [90m 446 |[39m     [36mconst[39m matchesStoreType [33m=[39m [33m![39mselectedStoreType [33m||[39m r[33m.[39mtype [33m===[39m selectedStoreType[33m;[39m
+[31m[1m>[22m[39m[90m 447 |[39m     [36mconst[39m matchesFavorites [33m=[39m sortBy [33m!==[39m [32m'favorites'[39m [33m||[39m favorites[33m.[39mincludes(r[33m.[39mid)[33m;[39m
+ [90m     |[39m                              [31m[1m^[22m[39m
+ [90m 448 |[39m     
+ [90m 449 |[39m     [36mreturn[39m matchesSearch [33m&&[39m matchesDietary [33m&&[39m matchesStoreType [33m&&[39m matchesFavorites[33m;[39m
+ [90m 450 |[39m   })[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

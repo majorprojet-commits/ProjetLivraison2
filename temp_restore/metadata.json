@@ -1,0 +1,7 @@
+{
+  "name": "Multi-App Delivery Portal",
+  "description": "A comprehensive delivery platform featuring a Next.js Admin Dashboard and Expo/React Native mobile apps for Clients, Sellers, and Drivers.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

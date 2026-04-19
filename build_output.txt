@@ -1,0 +1,51 @@
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 15.5.15
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./node_modules/react-native/Libraries/Utilities/codegenNativeComponent.js
+Module parse failed: Unexpected token (13:12)
+File was processed with these loaders:
+ * ./node_modules/next/dist/build/webpack/loaders/next-flight-client-module-loader.js
+ * ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+You may need an additional loader to handle the result of these loaders.
+| // TODO: move this file to shims/ReactNative (requires React update and sync)
+| 
+> import type {HostComponent} from '../../Libraries/Renderer/shims/ReactNativeTypes';
+| 
+| import requireNativeComponent from '../../Libraries/ReactNative/requireNativeComponent';
+
+Import trace for requested module:
+./node_modules/react-native/Libraries/Utilities/codegenNativeComponent.js
+./node_modules/react-native-svg/lib/module/fabric/CircleNativeComponent.js
+./node_modules/react-native-svg/lib/module/elements/Circle.js
+./node_modules/react-native-svg/lib/module/ReactNativeSVG.js
+./node_modules/react-native-svg/lib/module/index.js
+./node_modules/lucide-react-native/dist/esm/Icon.js
+./node_modules/lucide-react-native/dist/esm/lucide-react-native.js
+./app/payment/success/page.tsx
+
+./node_modules/react-native/index.js
+Module parse failed: Unexpected token (14:7)
+File was processed with these loaders:
+ * ./node_modules/next/dist/build/webpack/loaders/next-flight-client-module-loader.js
+ * ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+You may need an additional loader to handle the result of these loaders.
+| 
+| // Components
+> import typeof AccessibilityInfo from './Libraries/Components/AccessibilityInfo/AccessibilityInfo';
+| import typeof ActivityIndicator from './Libraries/Components/ActivityIndicator/ActivityIndicator';
+| import typeof Button from './Libraries/Components/Button';
+
+Import trace for requested module:
+./node_modules/react-native/index.js
+./app/payment/success/page.tsx
+
+
+> Build failed because of webpack errors
