@@ -5,7 +5,15 @@ const schema = new mongoose.Schema({
   driverId: String,
   items: Array,
   total: Number,
-  status: { type: String, default: 'pending' },
+  status: { 
+    type: String, 
+    enum: ['pending', 'accepted', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'],
+    default: 'pending' 
+  },
+  statusHistory: [{
+    status: String,
+    timestamp: { type: Date, default: Date.now }
+  }],
   pickupCode: { type: String }, // 4-char unique code
   clientCode: { type: String }, // Code for delivery confirmation
   deliveryPhoto: { type: String }, // URL to photo

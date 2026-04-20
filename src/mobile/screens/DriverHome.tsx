@@ -201,7 +201,7 @@ export default function DriverHome() {
 
   const dailyEarnings = myOrders
     .filter(o => o.status === 'delivered' && o.date && new Date(o.date).toDateString() === new Date().toDateString())
-    .reduce((sum, o) => sum + 5.00, 0); // Flat 5€ per delivery for MVP
+    .reduce((sum, o) => sum + 500, 0); // Flat 500 FCFA per delivery for MVP
 
   const activeDeliveries = myOrders.filter(o => ['assigned', 'picked_up', 'delivering'].includes(o.status));
   const pastDeliveries = myOrders.filter(o => o.status === 'delivered');
@@ -230,7 +230,7 @@ export default function DriverHome() {
       <View style={styles.earningsCard}>
         <View>
           <Text style={styles.earningsLabel}>Gains du jour</Text>
-          <Text style={styles.earningsVal}>{dailyEarnings.toFixed(2)} €</Text>
+          <Text style={styles.earningsVal}>{dailyEarnings.toLocaleString()} FCFA</Text>
         </View>
         <View style={styles.earningsStats}>
           <View style={styles.statItem}>
@@ -308,7 +308,7 @@ function OfferCard({ order, onAccept }: { order: any, onAccept: () => void }) {
           <Text style={styles.restaurantName}>Course #{order.id.slice(-4).toUpperCase()}</Text>
           <Text style={styles.distanceText}>Prêt pour ramassage</Text>
         </View>
-        <Text style={styles.payoutText}>5.00 €</Text>
+        <Text style={styles.payoutText}>500 FCFA</Text>
       </View>
       <View style={styles.addressRow}>
         <MapPin size={14} color="#94a3b8" />
@@ -354,7 +354,7 @@ function HistoryItem({ order }: { order: any }) {
         <Text style={styles.historyName}>Course #{order.id.slice(-4).toUpperCase()}</Text>
         <Text style={styles.historyTime}>{order.date ? new Date(order.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</Text>
       </View>
-      <Text style={styles.historyAmount}>5.00 €</Text>
+      <Text style={styles.historyAmount}>500 FCFA</Text>
     </View>
   );
 }

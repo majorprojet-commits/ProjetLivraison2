@@ -5,7 +5,8 @@ import {
   Settings, Bell, AlertTriangle, TrendingUp,
   ShoppingBag, Star, Plus, Trash2, Edit3,
   Navigation, MapPin, Globe, DollarSign,
-  CheckCircle, XCircle, Ban, Search, Filter
+  CheckCircle, XCircle, Ban, Search, Filter,
+  Truck, FileText, Activity
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, setOrders, setMenu, setAnalytics, setReviews } from '../store';
@@ -28,6 +29,9 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
   const [sellers, setSellers] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
   const [disputes, setDisputes] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [promos, setPromos] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [testRole, setTestRole] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([
     { id: 1, title: 'Nouvelle Commande', message: 'Le vendeur Burger King a reçu une commande.', time: 'Il y a 2 min', read: false },
@@ -45,12 +49,15 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
       
       if (isSuperAdmin) {
         // Super Admin Data
-        const [uRes, rRes, sRes, zRes, dRes] = await Promise.all([
+        const [uRes, rRes, sRes, zRes, dRes, drRes, prRes, auRes] = await Promise.all([
           fetchWithTimeout('/api/users', { headers }),
           fetchWithTimeout('/api/sellers', { headers }),
           fetchWithTimeout('/api/admin/stats', { headers }),
           fetchWithTimeout('/api/admin/zones', { headers }),
-          fetchWithTimeout('/api/admin/disputes', { headers })
+          fetchWithTimeout('/api/admin/disputes', { headers }),
+          fetchWithTimeout('/api/admin/drivers', { headers }),
+          fetchWithTimeout('/api/admin/promos', { headers }),
+          fetchWithTimeout('/api/admin/audit', { headers })
         ]);
 
         if (uRes.ok) setUsers(await (uRes as any).safeJson());
@@ -58,6 +65,9 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
         if (sRes.ok) dispatch(setAnalytics(await (sRes as any).safeJson()));
         if (zRes.ok) setZones(await (zRes as any).safeJson());
         if (dRes.ok) setDisputes(await (dRes as any).safeJson());
+        if (drRes.ok) setDrivers(await (drRes as any).safeJson());
+        if (prRes.ok) setPromos(await (prRes as any).safeJson());
+        if (auRes.ok) setAuditLogs(await (auRes as any).safeJson());
       } else if (sellerId) {
         // Seller Owner Data
         const menuRes = await fetchWithTimeout(`/api/sellers/${sellerId}/menu`, { headers });
@@ -101,6 +111,7 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
 
   const handleUpdateSellerStatus = async (id: string, status: string) => {
     try {
+      console.log(`[Admin] Updating seller ${id} status to ${status}`);
       const res = await fetch(`/api/admin/sellers/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -108,12 +119,19 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
       });
       if (res.ok) {
         setSellers(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+      } else {
+        const error = await res.json();
+        alert(`Erreur: ${error.error || 'Impossible de mettre à jour le statut'}`);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      alert("Erreur de connexion lors de la mise à jour du statut vendeur.");
+    }
   };
 
   const handleBanUser = async (id: string, isBanned: boolean) => {
     try {
+      console.log(`[Admin] Updating user ${id} ban status to ${isBanned}`);
       const res = await fetch(`/api/admin/users/${id}/ban`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -121,8 +139,14 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
       });
       if (res.ok) {
         setUsers(prev => prev.map(u => u.id === id ? { ...u, isBanned } : u));
+      } else {
+        const error = await res.json();
+        alert(`Erreur: ${error.error || 'Impossible de bannir l\'utilisateur'}`);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      alert("Erreur de connexion lors du bannissement.");
+    }
   };
 
   const handleUpdateCommission = async (rate: number) => {
@@ -164,15 +188,18 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
             <>
               <NavItem active={activeView === 'restaurants'} onClick={() => setActiveView('restaurants')} icon={Store} label="Vendeurs" />
               <NavItem active={activeView === 'users'} onClick={() => setActiveView('users')} icon={Users} label="Utilisateurs" />
+              <NavItem active={activeView === 'drivers'} onClick={() => setActiveView('drivers')} icon={Truck} label="Livreurs" />
               <NavItem active={activeView === 'commissions'} onClick={() => setActiveView('commissions')} icon={DollarSign} label="Commissions" />
               <NavItem active={activeView === 'support'} onClick={() => setActiveView('support')} icon={MessageSquare} label="Support Client" />
               <NavItem active={activeView === 'zones'} onClick={() => setActiveView('zones')} icon={MapPin} label="Zones & Catégories" />
+              <NavItem active={activeView === 'all_promos'} onClick={() => setActiveView('all_promos')} icon={Tag} label="Codes Promo Global" />
+              <NavItem active={activeView === 'audit'} onClick={() => setActiveView('audit')} icon={Activity} label="Logs d'Audit" />
             </>
           ) : (
             <>
               <NavItem active={activeView === 'menu'} onClick={() => setActiveView('menu')} icon={Utensils} label="Ma Carte" />
               <NavItem active={activeView === 'finance'} onClick={() => setActiveView('finance')} icon={Receipt} label="Mes Factures" />
-              <NavItem active={activeView === 'reviews'} onClick={() => setActiveView('reviews')} icon={AvisIcon} label="Avis Clients" />
+              <NavItem active={activeView === 'reviews'} onClick={() => setActiveView('reviews')} icon={Star} label="Avis Clients" />
               <NavItem active={activeView === 'promos'} onClick={() => setActiveView('promos')} icon={Tag} label="Mes Promotions" />
             </>
           )}
@@ -201,6 +228,9 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
                 {activeView === 'commissions' && "Configuration Commissions"}
                 {activeView === 'support' && "Support & Litiges"}
                 {activeView === 'zones' && "Zones de Livraison"}
+                {activeView === 'drivers' && "Vérification des Livreurs"}
+                {activeView === 'all_promos' && "Gestion des Codes Promo"}
+                {activeView === 'audit' && "Journal d'Audit"}
               </h2>
               <p className="text-sm text-gray-500 font-medium">
                 {isSuperAdmin ? "Super Administrateur" : `Vendeur - ${currentUser?.name}`}
@@ -290,6 +320,9 @@ export default function AdminApp({ token, onLogout, user: initialUser }: { token
           {activeView === 'commissions' && isSuperAdmin && <CommissionsConfig onUpdate={handleUpdateCommission} />}
           {activeView === 'support' && isSuperAdmin && <SupportView disputes={disputes} token={token} setDisputes={setDisputes} />}
           {activeView === 'zones' && isSuperAdmin && <ZonesConfig zones={zones} token={token} setZones={setZones} />}
+          {activeView === 'drivers' && isSuperAdmin && <DriversManagement drivers={drivers} token={token} setDrivers={setDrivers} />}
+          {activeView === 'all_promos' && isSuperAdmin && <AllPromosManagement promos={promos} token={token} setPromos={setPromos} />}
+          {activeView === 'audit' && isSuperAdmin && <AuditLogsView logs={auditLogs} />}
         </div>
       </main>
     </div>
@@ -323,10 +356,10 @@ function SuperAdminDashboard({ analytics }: any) {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard label="Volume d'Affaires" value={`${analytics.totalRevenue?.toLocaleString()} €`} icon={TrendingUp} trend="+15%" color="purple" />
+        <StatCard label="Volume d'Affaires" value={`${analytics.totalRevenue?.toLocaleString()} FCFA`} icon={TrendingUp} trend="+15%" color="purple" />
         <StatCard label="Vendeurs Actifs" value={analytics.activeSellers} icon={Store} trend="+3" color="blue" />
         <StatCard label="Total Commandes" value={analytics.totalOrders} icon={ShoppingBag} trend="+12%" color="green" />
-        <StatCard label="Revenu Commissions" value={`${analytics.commissionRevenue?.toLocaleString()} €`} icon={DollarSign} trend="+8%" color="orange" />
+        <StatCard label="Revenu Commissions" value={`${analytics.commissionRevenue?.toLocaleString()} FCFA`} icon={DollarSign} trend="+8%" color="orange" />
       </div>
 
       <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
@@ -510,6 +543,10 @@ function CommissionsConfig({ onUpdate }: any) {
 }
 
 function SupportView({ disputes, token, setDisputes }: any) {
+  const [selectedDispute, setSelectedDispute] = useState<any>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       const res = await fetch(`/api/admin/disputes/${id}/status`, {
@@ -521,6 +558,35 @@ function SupportView({ disputes, token, setDisputes }: any) {
         setDisputes((prev: any[]) => prev.map(d => d._id === id ? { ...d, status } : d));
       }
     } catch (e) { console.error(e); }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedDispute) return;
+
+    setIsSending(true);
+    try {
+      const res = await fetch(`/api/admin/disputes/${selectedDispute._id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ text: newMessage })
+      });
+      if (res.ok) {
+        const msg = await res.json();
+        setDisputes((prev: any[]) => prev.map(d => 
+          d._id === selectedDispute._id 
+            ? { ...d, messages: [...(d.messages || []), msg] } 
+            : d
+        ));
+        setSelectedDispute((prev: any) => ({
+          ...prev,
+          messages: [...(prev.messages || []), msg]
+        }));
+        setNewMessage('');
+      }
+    } catch (e) { console.error(e); } finally {
+      setIsSending(false);
+    }
   };
 
   if (!disputes || disputes.length === 0) {
@@ -536,7 +602,7 @@ function SupportView({ disputes, token, setDisputes }: any) {
   return (
     <div className="grid grid-cols-1 gap-6">
       {disputes.map((dispute: any) => (
-        <div key={dispute._id} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
+        <div key={dispute._id} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group">
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-4">
               <div className={cn(
@@ -548,7 +614,7 @@ function SupportView({ disputes, token, setDisputes }: any) {
               <div>
                 <h4 className="font-black text-lg">{dispute.reason}</h4>
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                  Commande #{dispute.orderId?._id?.slice(-6).toUpperCase()} • {dispute.userId?.name}
+                  Commande #{dispute.orderId?._id?.slice(-6).toUpperCase() || 'N/A'} • {dispute.userId?.name || 'Inconnu'}
                 </p>
               </div>
             </div>
@@ -564,24 +630,113 @@ function SupportView({ disputes, token, setDisputes }: any) {
               <select 
                 value={dispute.status}
                 onChange={(e) => handleUpdateStatus(dispute._id, e.target.value)}
-                className="text-[10px] font-black uppercase tracking-widest bg-gray-50 border-none rounded-lg px-2 py-1 outline-none"
+                className="text-[10px] font-black uppercase tracking-widest bg-gray-50 border-none rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-purple-500/20 mr-2"
               >
                 <option value="open">Ouvrir</option>
                 <option value="in_progress">En cours</option>
                 <option value="resolved">Résolu</option>
                 <option value="closed">Fermé</option>
               </select>
+              <button 
+                onClick={() => setSelectedDispute(dispute)}
+                className="p-2 hover:bg-gray-50 rounded-xl transition-colors relative"
+              >
+                <MessageSquare className="w-5 h-5 text-gray-400" />
+                {dispute.messages?.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+                    {dispute.messages.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
-          <p className="text-gray-600 font-medium mb-6">{dispute.description}</p>
-          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-            <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-2">Vendeur concerné</p>
-            <p className="font-bold text-gray-700">{dispute.sellerId?.name || 'N/A'}</p>
+          <p className="text-gray-600 font-medium mb-6 line-clamp-2">{dispute.description}</p>
+          <div className="flex gap-4">
+            <div className="flex-1 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-1">Vendeur concerné</p>
+              <p className="text-xs font-bold text-gray-700">{dispute.sellerId?.name || 'N/A'}</p>
+            </div>
+            <div className="flex-1 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-1">Dernière mise à jour</p>
+              <p className="text-xs font-bold text-gray-700">{new Date(dispute.updatedAt).toLocaleDateString()}</p>
+            </div>
           </div>
         </div>
       ))}
+
+      {/* Chat Modal */}
+      {selectedDispute && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-end">
+          <div className="bg-white w-full max-w-lg h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <div className="flex items-center gap-4">
+                 <button onClick={() => setSelectedDispute(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                   <ChevronLeft className="w-6 h-6" />
+                 </button>
+                 <div>
+                   <h3 className="text-xl font-black">{selectedDispute.reason}</h3>
+                   <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Litige #{selectedDispute._id.slice(-6).toUpperCase()}</p>
+                 </div>
+              </div>
+              <button onClick={() => setSelectedDispute(null)} className="p-2 hover:bg-gray-200 rounded-full">
+                <XCircle className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/30">
+               {/* Initial Issue Description */}
+               <div className="flex justify-start">
+                  <div className="bg-white p-4 rounded-t-2xl rounded-br-2xl shadow-sm border border-gray-100 max-w-[80%]">
+                    <p className="text-[10px] font-black text-purple-600 uppercase mb-1">{selectedDispute.userId?.name}</p>
+                    <p className="text-sm font-medium text-gray-700">{selectedDispute.description}</p>
+                    <p className="text-[8px] text-gray-400 mt-2 text-right">{new Date(selectedDispute.createdAt).toLocaleString()}</p>
+                  </div>
+               </div>
+
+               {/* Chat History */}
+               {selectedDispute.messages?.map((msg: any, idx: number) => (
+                 <div key={idx} className={cn("flex", msg.senderId === initialUser?.id ? "justify-end" : "justify-start")}>
+                   <div className={cn(
+                     "p-4 rounded-2xl shadow-sm max-w-[80%]",
+                     msg.senderId === initialUser?.id 
+                      ? "bg-purple-600 text-white rounded-tr-none" 
+                      : "bg-white text-gray-700 border border-gray-100 rounded-tl-none"
+                   )}>
+                     <p className="text-sm font-medium">{msg.text}</p>
+                     <p className={cn("text-[8px] mt-2 text-right", msg.senderId === initialUser?.id ? "text-purple-200" : "text-gray-400")}>
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                     </p>
+                   </div>
+                 </div>
+               ))}
+            </div>
+
+            <div className="p-6 bg-white border-t border-gray-100">
+              <form onSubmit={handleSendMessage} className="flex gap-4">
+                <input 
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Tapez votre message..."
+                  className="flex-1 bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
+                />
+                <button 
+                  disabled={isSending || !newMessage.trim()}
+                  type="submit"
+                  className="bg-purple-600 text-white px-8 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-100 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  Envoyer
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function ChevronLeft(props: any) {
+  return <Navigation {...props} className={cn(props.className, "-rotate-90")} />;
 }
 
 function ZonesConfig({ zones, token, setZones }: any) {
@@ -625,7 +780,7 @@ function ZonesConfig({ zones, token, setZones }: any) {
               <div key={zone._id} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <div>
                   <p className="font-black text-sm text-gray-700">{zone.name}</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Frais: {zone.deliveryFee}€ • Min: {zone.minOrder}€</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Frais: {zone.deliveryFee.toLocaleString()} FCFA • Min: {zone.minOrder.toLocaleString()} FCFA</p>
                 </div>
                 <button onClick={() => handleDelete(zone._id)} className="text-red-500 hover:text-red-600 p-2"><Trash2 className="w-4 h-4" /></button>
               </div>
@@ -716,8 +871,8 @@ function SellerDashboard({ analytics }: any) {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="CA du Jour" value={`${analytics.dailyRevenue} €`} icon={TrendingUp} trend="+12%" color="orange" />
-        <StatCard label="CA Hebdo" value={`${analytics.weeklyRevenue} €`} icon={BarChart3} trend="+5%" color="blue" />
+        <StatCard label="CA du Jour" value={`${analytics.dailyRevenue.toLocaleString()} FCFA`} icon={TrendingUp} trend="+12%" color="orange" />
+        <StatCard label="CA Hebdo" value={`${analytics.weeklyRevenue.toLocaleString()} FCFA`} icon={BarChart3} trend="+5%" color="blue" />
         <StatCard label="Top Plat" value={analytics.topDishes?.[0]?.name || 'N/A'} icon={Utensils} trend="Best Seller" color="green" />
       </div>
 
@@ -894,7 +1049,7 @@ function MenuView({ menu, token, sellerId, onRefresh }: { menu: any[], token: st
             <div className="p-6">
               <div className="flex justify-between items-start mb-2">
                 <h4 className="font-black text-lg">{item.name}</h4>
-                <span className="font-black text-orange-500">{item.price.toFixed(2)} €</span>
+                <span className="font-black text-orange-500">{item.price.toLocaleString()} FCFA</span>
               </div>
               <p className="text-sm text-gray-500 line-clamp-2 mb-4">{item.description}</p>
               <div className="flex items-center justify-between">
@@ -958,7 +1113,7 @@ function MenuView({ menu, token, sellerId, onRefresh }: { menu: any[], token: st
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Prix (€)</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Prix (FCFA)</label>
                     <input 
                       required
                       type="number" 
@@ -1049,7 +1204,7 @@ function FinanceView({ orders }: { orders: any[] }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-purple-600 p-8 rounded-[32px] text-white shadow-xl shadow-purple-100">
           <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Solde à Reverser</p>
-          <h4 className="text-4xl font-black mb-6">4,250.80 €</h4>
+          <h4 className="text-4xl font-black mb-6">4 250 800 FCFA</h4>
           <button className="w-full py-3 bg-white/20 backdrop-blur-md rounded-2xl font-black text-sm hover:bg-white/30 transition-colors">
             Demander un Virement
           </button>
@@ -1080,7 +1235,7 @@ function FinanceView({ orders }: { orders: any[] }) {
                 <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-8 py-4 font-black text-sm">#{order.id.slice(-6).toUpperCase()}</td>
                   <td className="px-8 py-4 text-sm text-gray-500 font-medium">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-8 py-4 font-black text-sm text-green-600">{(order.total * (1 - commissionRate)).toFixed(2)} €</td>
+                  <td className="px-8 py-4 font-black text-sm text-green-600">{(order.total * (1 - commissionRate)).toLocaleString()} FCFA</td>
                   <td className="px-8 py-4">
                     <span className="bg-green-50 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Versé</span>
                   </td>
@@ -1135,6 +1290,267 @@ function PromosView() {
           <p className="font-bold">Aucune promotion active</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AuditLogsView({ logs }: { logs: any[] }) {
+  // same as before...
+  return (
+    <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+        <h3 className="text-xl font-black">Journal d'Audit</h3>
+        <span className="text-xs font-bold text-gray-400">{logs?.length || 0} Actions enregistrées</span>
+      </div>
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50 text-left">
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Date</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Admin</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Action</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Cible</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Détails</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {logs?.map((log: any, idx: number) => (
+              <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                <td className="px-8 py-4 text-xs font-medium text-gray-500">{new Date(log.timestamp).toLocaleString()}</td>
+                <td className="px-8 py-4 font-black text-sm text-purple-600">{log.adminId?.name || 'Admin'}</td>
+                <td className="px-8 py-4">
+                  <span className="px-2 py-1 bg-gray-100 rounded text-[10px] font-black uppercase tracking-widest">{log.action}</span>
+                </td>
+                <td className="px-8 py-4 text-xs font-bold text-gray-400">{log.targetType} ({log.targetId})</td>
+                <td className="px-8 py-4 text-xs text-gray-600 font-medium max-w-xs truncate">{JSON.stringify(log.details)}</td>
+              </tr>
+            ))}
+            {(!logs || logs.length === 0) && (
+              <tr>
+                <td colSpan={5} className="px-8 py-12 text-center text-gray-400 font-bold italic">Aucun log disponible</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function DriversManagement({ drivers, token, setDrivers }: any) {
+  const handleVerify = async (id: string, status: 'verified' | 'pending' | 'rejected') => {
+    try {
+      const res = await fetch(`/api/admin/drivers/${id}/verify`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        setDrivers((prev: any[]) => prev.map(d => d.id === id ? { ...d, driverInfo: { ...d.driverInfo, verificationStatus: status } } : d));
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  return (
+    <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="p-8 border-b border-gray-50">
+        <h3 className="text-xl font-black">Candidatures Livreurs</h3>
+      </div>
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50 text-left">
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Livreur</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Véhicule</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Documents</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Statut</th>
+              <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {drivers?.map((d: any) => (
+              <tr key={d.id} className="hover:bg-gray-50/50 transition-colors">
+                <td className="px-8 py-4">
+                  <div className="flex flex-col">
+                    <span className="font-black text-sm">{d.name}</span>
+                    <span className="text-xs text-gray-400">{d.email}</span>
+                  </div>
+                </td>
+                <td className="px-8 py-4">
+                  <span className="text-xs font-bold text-gray-600 uppercase">{d.driverInfo?.vehicleType}</span>
+                </td>
+                <td className="px-8 py-4">
+                  <div className="flex gap-2">
+                    {d.driverInfo?.licenseNumber && <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-black uppercase">Permis: {d.driverInfo.licenseNumber}</span>}
+                  </div>
+                </td>
+                <td className="px-8 py-4">
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                    d.driverInfo?.verificationStatus === 'verified' ? "bg-green-50 text-green-600" : 
+                    d.driverInfo?.verificationStatus === 'rejected' ? "bg-red-50 text-red-600" :
+                    "bg-orange-50 text-orange-600"
+                  )}>
+                    {d.driverInfo?.verificationStatus === 'verified' ? 'Vérifié' : 
+                     d.driverInfo?.verificationStatus === 'rejected' ? 'Rejeté' : 'En attente'}
+                  </span>
+                </td>
+                <td className="px-8 py-4">
+                  <div className="flex gap-2">
+                    {d.driverInfo?.verificationStatus !== 'verified' ? (
+                      <button 
+                        onClick={() => handleVerify(d.id, 'verified')}
+                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-green-50 text-green-600 hover:bg-green-100 transition-all"
+                      >
+                        Approuver
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleVerify(d.id, 'pending')}
+                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                      >
+                        Révoquer
+                      </button>
+                    )}
+                    {d.driverInfo?.verificationStatus === 'pending' && (
+                       <button 
+                         onClick={() => handleVerify(d.id, 'rejected')}
+                         className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all"
+                       >
+                         Rejeter
+                       </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {(!drivers || drivers.length === 0) && (
+              <tr>
+                <td colSpan={5} className="px-8 py-12 text-center text-gray-400 font-bold italic">Aucun livreur en attente</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AllPromosManagement({ promos, token, setPromos }: any) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    code: '',
+    discountType: 'percentage',
+    discountValue: 10,
+    expiryDate: format(new Date(), 'yyyy-MM-dd'),
+    usageLimit: 100,
+    minOrderAmount: 0
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/promos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        const newPromo = await res.json();
+        setPromos((prev: any[]) => [...prev, newPromo]);
+        setIsModalOpen(false);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-black">Codes Promotionnels Globaux</h3>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-purple-600 text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-purple-100 active:scale-95 transition-transform"
+        >
+          <Plus className="w-5 h-5" /> Créer un Code
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {promos?.map((p: any) => (
+          <div key={p._id} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 bg-purple-600 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase tracking-widest">
+              {p.code}
+            </div>
+            <div className="mb-6">
+              <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                <Tag className="w-6 h-6" />
+              </div>
+              <h4 className="text-2xl font-black text-gray-900">{p.discountValue}{p.discountType === 'percentage' ? '%' : ' FCFA'}</h4>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">De réduction</p>
+            </div>
+            <div className="space-y-2 border-t border-gray-50 pt-4">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-gray-400">Utilisations</span>
+                <span className="text-gray-900">{p.usedCount || 0} / {p.usageLimit}</span>
+              </div>
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-gray-400">Expire le</span>
+                <span className="text-gray-900">{new Date(p.expiryDate).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+        {(!promos || promos.length === 0) && (
+          <div className="col-span-full py-20 text-center bg-white rounded-[32px] border border-dashed border-gray-200">
+             <Tag className="w-12 h-12 mx-auto mb-4 text-gray-200" />
+             <p className="font-bold text-gray-400">Aucun code promo créé</p>
+          </div>
+        )}
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl relative">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full">
+              <XCircle className="w-6 h-6 text-gray-400" />
+            </button>
+            <h3 className="text-2xl font-black mb-6">Nouveau Code Promo</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1 block">Code</label>
+                <input required type="text" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold" placeholder="EX: SUMMER24" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1 block">Valeur</label>
+                  <input required type="number" value={formData.discountValue} onChange={e => setFormData({...formData, discountValue: Number(e.target.value)})} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1 block">Type</label>
+                  <select value={formData.discountType} onChange={e => setFormData({...formData, discountType: e.target.value as any})} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold">
+                    <option value="percentage">Pourcentage %</option>
+                    <option value="fixed">Fixe FCFA</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1 block">Expiration</label>
+                  <input required type="date" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold" />
+                </div>
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1 block">Limite</label>
+                   <input required type="number" value={formData.usageLimit} onChange={e => setFormData({...formData, usageLimit: Number(e.target.value)})} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold" />
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-gray-100 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-500">Annuler</button>
+                <button type="submit" className="flex-[2] py-4 bg-purple-600 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-lg shadow-purple-100">Créer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

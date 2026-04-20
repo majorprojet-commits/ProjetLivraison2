@@ -9,7 +9,8 @@ export class RegisterUser {
     if (existing) throw new Error('Email already in use');
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    const user = new User('', data.name, data.email, data.phone || '', 'client', hashedPassword);
+    const id = 'u' + Math.random().toString(36).substr(2, 9);
+    const user = new User(id, data.name, data.email, data.phone || '', 'client', hashedPassword);
     
     return await this.repo.create(user);
   }

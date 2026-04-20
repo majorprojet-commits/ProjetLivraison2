@@ -36,6 +36,7 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('operations');
   const [sellerData, setSellerData] = useState<any>(null);
+  const [payoutsData, setPayoutsData] = useState({ payouts: [], balance: 0 });
   const notificationSound = useRef<HTMLAudioElement | null>(null);
 
   const sellerId = user?.sellerId;
@@ -73,6 +74,12 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
         const menuRes = await fetchWithTimeout(`/api/sellers/${sellerId}/menu`, { headers });
         if (menuRes.ok) {
           dispatch(setMenu(await (menuRes as any).safeJson()));
+        }
+
+        // Fetch Payouts
+        const payoutsRes = await fetchWithTimeout(`/api/sellers/${sellerId}/payouts`, { headers });
+        if (payoutsRes.ok) {
+          setPayoutsData(await (payoutsRes as any).safeJson());
         }
       } catch (error) {
         console.error("Failed to fetch seller data:", error);
@@ -198,6 +205,32 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
     }
   };
 
+  const handleTogglePause = async () => {
+    try {
+      const res = await fetch(`/api/sellers/${sellerId}/pause`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { isPaused } = await res.json();
+        setSellerData((prev: any) => ({ ...prev, isPaused }));
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleUpdateHours = async (hours: any) => {
+    try {
+      const res = await fetch(`/api/sellers/${sellerId}/hours`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ hours })
+      });
+      if (res.ok) {
+        setSellerData((prev: any) => ({ ...prev, openingHours: hours }));
+      }
+    } catch (e) { console.error(e); }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -252,7 +285,7 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
 
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-4 mb-8 overflow-x-auto pb-2 no-scrollbar">
           <button 
             onClick={() => setActiveTab('operations')}
             className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'operations' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
@@ -263,13 +296,25 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
             onClick={() => setActiveTab('inventory')}
             className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'inventory' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
           >
-            Inventaire Rapide
+            Stock
           </button>
           <button 
             onClick={() => setActiveTab('menu')}
             className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'menu' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
           >
             {term.menu}
+          </button>
+          <button 
+            onClick={() => setActiveTab('finance')}
+            className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'finance' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
+          >
+            Finances
+          </button>
+          <button 
+            onClick={() => setActiveTab('promos')}
+            className={cn("px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all", activeTab === 'promos' ? "bg-orange-500 text-white shadow-lg shadow-orange-100" : "bg-white text-gray-400 border border-gray-100")}
+          >
+            Promos
           </button>
           <button 
             onClick={() => setActiveTab('dashboard')}
@@ -286,10 +331,12 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
         </div>
 
         {activeTab === 'operations' && <OperationsView orders={orders} onUpdateStatus={handleUpdateStatus} onAddTime={handleAddTime} />}
-        {activeTab === 'menu' && <MenuView menu={menu} onAddDish={handleAddDish} onUpdateDish={handleUpdateDish} onDeleteDish={handleDeleteDish} term={term} />}
+        {activeTab === 'menu' && <MenuView menu={menu} onAddDish={handleAddDish} onUpdateDish={handleUpdateDish} onDeleteDish={handleDeleteDish} term={term} hours={sellerData?.openingHours} onUpdateHours={handleUpdateHours} />}
         {activeTab === 'inventory' && <QuickInventory menu={menu} token={token} sellerId={sellerId} />}
-        {activeTab === 'dashboard' && <DashboardView analytics={{ dailyRevenue: 0, weeklyRevenue: 0, cancellationRate: 0, revenueHistory: [], topDishes: [] }} />}
-        {activeTab === 'settings' && <SettingsView seller={sellerData} onUpdate={handleUpdateSettings} />}
+        {activeTab === 'finance' && <FinanceView orders={orders} payoutsData={payoutsData} />}
+        {activeTab === 'promos' && <PromosView />}
+        {activeTab === 'dashboard' && <DashboardView analytics={{ dailyRevenue: orders.filter(o => o.status === 'delivered' && new Date(o.createdAt) > subDays(new Date(), 1)).reduce((acc, o) => acc + o.total, 0), weeklyRevenue: orders.filter(o => o.status === 'delivered' && new Date(o.createdAt) > subDays(new Date(), 7)).reduce((acc, o) => acc + o.total, 0), cancellationRate: 0, revenueHistory: [], topDishes: [] }} />}
+        {activeTab === 'settings' && <SettingsView seller={sellerData} onUpdate={handleUpdateSettings} onTogglePause={handleTogglePause} />}
       </main>
     </div>
   );
@@ -320,11 +367,11 @@ function OperationsView({ orders, onUpdateStatus, onAddTime }: { orders: any[], 
   const [refuseReason, setRefuseReason] = useState('');
 
   const pending = orders.filter(o => o.status === 'pending');
-  const preparing = orders.filter(o => o.status === 'preparing');
-  const ready = orders.filter(o => o.status === 'ready');
+  const preparing = orders.filter(o => ['accepted', 'preparing'].includes(o.status));
+  const ready = orders.filter(o => o.status === 'ready_for_pickup');
 
   const handleAccept = () => {
-    onUpdateStatus(selectedOrder.id, 'preparing', { prepTime });
+    onUpdateStatus(selectedOrder.id, 'accepted', { prepTime });
     setModalType(null);
     setSelectedOrder(null);
   };
@@ -351,7 +398,7 @@ function OperationsView({ orders, onUpdateStatus, onAddTime }: { orders: any[], 
         icon={ChefHat} 
         color="orange" 
         orders={preparing} 
-        onAction={(order: any) => onUpdateStatus(order.id, 'ready')} 
+        onAction={(order: any) => onUpdateStatus(order.id, 'ready_for_pickup')} 
         onAddTime={onAddTime}
         actionText="Prête" 
       />
@@ -360,8 +407,8 @@ function OperationsView({ orders, onUpdateStatus, onAddTime }: { orders: any[], 
         icon={CheckCircle} 
         color="green" 
         orders={ready} 
-        onAction={(order: any) => onUpdateStatus(order.id, 'delivered')} 
-        actionText="Livrée" 
+        onAction={(order: any) => onUpdateStatus(order.id, 'out_for_delivery')} 
+        actionText="Expédiée" 
       />
 
       {/* Modals */}
@@ -451,7 +498,7 @@ function OrderColumn({ title, icon: Icon, color, orders, onAction, onRefuse, onA
                 <p className="font-black text-lg mt-0.5">{new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
               </div>
               <div className="text-right">
-                <p className="font-black text-orange-500">{order.total.toFixed(2)} €</p>
+                <p className="font-black text-orange-500">{order.total.toLocaleString()} FCFA</p>
                 <div className="flex items-center gap-2 justify-end">
                    <span className="text-[10px] font-black bg-gray-100 px-2 py-0.5 rounded text-gray-500 uppercase">Code: {order.pickupCode}</span>
                 </div>
@@ -536,8 +583,8 @@ function DashboardView({ analytics }: { analytics: any }) {
     <div className="space-y-8">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard label="CA du Jour" value={`${analytics.dailyRevenue} €`} icon={TrendingUp} trend="+12%" color="orange" />
-        <StatCard label="CA Hebdo" value={`${analytics.weeklyRevenue} €`} icon={BarChart3} trend="+5%" color="blue" />
+        <StatCard label="CA du Jour" value={`${analytics.dailyRevenue.toLocaleString()} FCFA`} icon={TrendingUp} trend="+12%" color="orange" />
+        <StatCard label="CA Hebdo" value={`${analytics.weeklyRevenue.toLocaleString()} FCFA`} icon={BarChart3} trend="+5%" color="blue" />
         <StatCard label="Plats Vendus" value="105" icon={ShoppingBag} trend="+18%" color="green" />
         <StatCard label="Taux Annulation" value={`${analytics.cancellationRate}%`} icon={AlertTriangle} trend="-1%" color="red" />
       </div>
@@ -617,16 +664,27 @@ function StatCard({ label, value, icon: Icon, trend, color }: any) {
   );
 }
 
-function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term }: { menu: any[], onAddDish: (dish: any) => void, onUpdateDish: (id: string, dish: any) => void, onDeleteDish: (id: string) => void, term: any }) {
+function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term, hours, onUpdateHours }: any) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDishId, setEditingDishId] = useState<string | null>(null);
+  const [localHours, setLocalHours] = useState<any>(hours || {});
+
+  useEffect(() => {
+    if (hours) setLocalHours(hours);
+  }, [hours]);
+
   const [formData, setFormData] = useState({
     name: '',
     price: '',
     description: '',
     category: 'Plat',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    options: [] as any[]
   });
+
+  const handleUpdateHoursClick = () => {
+    onUpdateHours(localHours);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -706,7 +764,7 @@ function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term }: { menu:
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-black text-lg">{item.name}</h4>
-                    <span className="font-black text-orange-500">{item.price.toFixed(2)} €</span>
+                    <span className="font-black text-orange-500">{item.price.toLocaleString()} FCFA</span>
                   </div>
                   <p className="text-sm text-gray-500 line-clamp-2 mb-4">{item.description}</p>
                   <div className="flex items-center justify-between">
@@ -737,14 +795,27 @@ function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term }: { menu:
                 <div key={day} className="flex items-center justify-between">
                   <span className="text-sm font-bold text-gray-600">{day}</span>
                   <div className="flex items-center gap-2">
-                    <input type="text" defaultValue="11:00" className="w-16 bg-gray-50 border-none rounded-lg px-2 py-1 text-xs font-bold text-center" />
+                    <input 
+                      type="text" 
+                      value={localHours[day]?.[0] || '11:00'} 
+                      onChange={e => setLocalHours({...localHours, [day]: [e.target.value, localHours[day]?.[1] || '22:00']})}
+                      className="w-16 bg-gray-50 border-none rounded-lg px-2 py-1 text-xs font-bold text-center" 
+                    />
                     <span className="text-gray-300">-</span>
-                    <input type="text" defaultValue="22:30" className="w-16 bg-gray-50 border-none rounded-lg px-2 py-1 text-xs font-bold text-center" />
+                    <input 
+                      type="text" 
+                      value={localHours[day]?.[1] || '22:00'} 
+                      onChange={e => setLocalHours({...localHours, [day]: [localHours[day]?.[0] || '11:00', e.target.value]})}
+                      className="w-16 bg-gray-50 border-none rounded-lg px-2 py-1 text-xs font-bold text-center" 
+                    />
                   </div>
                 </div>
               ))}
             </div>
-            <button className="w-full mt-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-colors">
+            <button 
+              onClick={handleUpdateHoursClick}
+              className="w-full mt-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-colors"
+            >
               Enregistrer les Horaires
             </button>
           </div>
@@ -780,7 +851,7 @@ function MenuView({ menu, onAddDish, onUpdateDish, onDeleteDish, term }: { menu:
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Prix (€)</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 block">Prix (FCFA)</label>
                   <input 
                     required
                     type="number" 
@@ -901,64 +972,80 @@ function QuickInventory({ menu, token, sellerId }: { menu: any[], token: string,
   );
 }
 
-function FinanceView({ orders }: { orders: any[] }) {
+function FinanceView({ orders, payoutsData }: { orders: any[], payoutsData: any }) {
   const pastOrders = orders.filter(o => o.status === 'delivered');
   const commissionRate = 0.15; // 15% commission
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-orange-500 p-8 rounded-[32px] text-white shadow-xl shadow-orange-100">
+        <div className={cn(
+          "p-8 rounded-[32px] text-white shadow-xl",
+          payoutsData.balance > 0 ? "bg-orange-500 shadow-orange-100" : "bg-gray-400 shadow-gray-100"
+        )}>
           <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Solde à Reverser</p>
-          <h4 className="text-4xl font-black mb-6">4,250.80 €</h4>
-          <button className="w-full py-3 bg-white/20 backdrop-blur-md rounded-2xl font-black text-sm hover:bg-white/30 transition-colors">
+          <h4 className="text-4xl font-black mb-6">{payoutsData.balance.toLocaleString()} FCFA</h4>
+          <button 
+            disabled={payoutsData.balance === 0}
+            className="w-full py-3 bg-white/20 backdrop-blur-md rounded-2xl font-black text-sm hover:bg-white/30 transition-colors disabled:opacity-50"
+          >
             Demander un Virement
           </button>
         </div>
         <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Commissions (15%)</p>
-          <h4 className="text-3xl font-black text-gray-900">637.62 €</h4>
+          <h4 className="text-3xl font-black text-gray-900">{(pastOrders.reduce((acc, o) => acc + o.total, 0) * commissionRate).toLocaleString()} FCFA</h4>
           <p className="text-xs text-green-500 font-bold mt-2 flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> +4% vs mois dernier
           </p>
         </div>
         <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Commandes Terminées</p>
-          <h4 className="text-3xl font-black text-gray-900">{pastOrders.length}</h4>
-          <p className="text-xs text-gray-400 font-bold mt-2">Mois de Mars 2024</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Paiements Reçus</p>
+          <h4 className="text-3xl font-black text-gray-900">{payoutsData.payouts?.length || 0}</h4>
+          <p className="text-xs text-gray-400 font-bold mt-2">Dernier le 12/04</p>
         </div>
       </div>
 
       <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-          <h3 className="text-xl font-black">Historique des Transactions</h3>
-          <button className="text-sm font-bold text-orange-500 hover:text-orange-600">Exporter en PDF</button>
+          <h3 className="text-xl font-black">Historique des Virements</h3>
+          <button className="text-sm font-bold text-orange-500 hover:text-orange-600">Exporter (CSV)</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 text-left">
-                <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Commande</th>
+                <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">ID Payout</th>
                 <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Date</th>
-                <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Montant Brut</th>
-                <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Commission</th>
-                <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Net</th>
+                <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Montant</th>
                 <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Statut</th>
+                <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Facture</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {pastOrders.map(order => (
-                <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-8 py-4 font-black text-sm">#{order.id.slice(-6).toUpperCase()}</td>
-                  <td className="px-8 py-4 text-sm text-gray-500 font-medium">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-8 py-4 font-bold text-sm">{order.total.toFixed(2)} €</td>
-                  <td className="px-8 py-4 text-sm text-red-500 font-bold">-{(order.total * commissionRate).toFixed(2)} €</td>
-                  <td className="px-8 py-4 font-black text-sm text-green-600">{(order.total * (1 - commissionRate)).toFixed(2)} €</td>
+              {payoutsData.payouts?.map((p: any, idx: number) => (
+                <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-8 py-4 font-black text-sm">#PY-{1000 + idx}</td>
+                  <td className="px-8 py-4 text-sm text-gray-500 font-medium">{new Date(p.date).toLocaleDateString()}</td>
+                  <td className="px-8 py-4 font-bold text-sm">{p.amount.toLocaleString()} FCFA</td>
                   <td className="px-8 py-4">
-                    <span className="bg-green-50 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Versé</span>
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                      p.status === 'completed' ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"
+                    )}>
+                      {p.status === 'completed' ? 'Versé' : 'En cours'}
+                    </span>
                   </td>
+                  <td className="px-8 py-4 font-bold text-sm text-blue-500 hover:underline cursor-pointer">Télécharger</td>
                 </tr>
               ))}
+              {(!payoutsData.payouts || payoutsData.payouts.length === 0) && (
+                <tr>
+                  <td colSpan={5} className="px-8 py-12 text-center text-gray-400 font-bold italic">
+                    Aucun virement effectué pour le moment
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1085,7 +1172,7 @@ function PromosView() {
   );
 }
 
-function SettingsView({ seller, onUpdate }: { seller: any, onUpdate: (settings: any) => void }) {
+function SettingsView({ seller, onUpdate, onTogglePause }: { seller: any, onUpdate: (settings: any) => void, onTogglePause: () => void }) {
   const [formData, setFormData] = useState({
     name: seller?.name || '',
     type: seller?.type || 'restaurant',
@@ -1112,7 +1199,35 @@ function SettingsView({ seller, onUpdate }: { seller: any, onUpdate: (settings: 
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className={cn(
+        "bg-white rounded-[40px] p-10 border shadow-sm transition-all",
+        seller?.isPaused ? "border-red-200" : "border-gray-100"
+      )}>
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h3 className="text-2xl font-black mb-2 flex items-center gap-2">
+               Mode Pause {seller?.isPaused && <span className="text-red-500 animate-pulse">●</span>}
+            </h3>
+            <p className="text-sm text-gray-500 font-medium max-w-md">
+              Activer la pause rend votre établissement immédiatement invisible sur l'application client. Utile en cas de surcharge ou d'urgence.
+            </p>
+          </div>
+          <button 
+            onClick={onTogglePause}
+            className={cn(
+              "px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95",
+              seller?.isPaused 
+                ? "bg-green-500 text-white shadow-green-100" 
+                : "bg-red-500 text-white shadow-red-100"
+            )}
+          >
+            {seller?.isPaused ? <Play className="w-4 h-4 inline mr-2" /> : <Pause className="w-4 h-4 inline mr-2" />}
+            {seller?.isPaused ? "Reprendre le service" : "Mettre en Pause"}
+          </button>
+        </div>
+      </div>
+
       <div className="bg-white rounded-[40px] p-10 border border-gray-100 shadow-sm">
         <h3 className="text-2xl font-black mb-8">Paramètres de l'établissement</h3>
         
@@ -1162,7 +1277,7 @@ function SettingsView({ seller, onUpdate }: { seller: any, onUpdate: (settings: 
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Frais de livraison (€)</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Frais de livraison (FCFA)</label>
                 <input 
                   type="number"
                   step="0.01"

@@ -46,7 +46,7 @@ export default function CartScreen({ cart, onUpdateQuantity, onRemove, onCheckou
               {Object.values(item.selectedChoices || {}).map((choice: any) => (
                 <Text key={choice.id} style={styles.itemChoice}>• {choice.name}</Text>
               ))}
-              <Text style={styles.itemPrice}>{item.finalPrice.toFixed(2)}€</Text>
+              <Text style={styles.itemPrice}>{item.finalPrice.toLocaleString()} FCFA</Text>
             </View>
             <View style={styles.quantityControls}>
               <View style={styles.qtyRow}>
@@ -69,10 +69,10 @@ export default function CartScreen({ cart, onUpdateQuantity, onRemove, onCheckou
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{total.toFixed(2)}€</Text>
+          <Text style={styles.totalValue}>{total.toLocaleString()} FCFA</Text>
         </View>
         <TouchableOpacity style={styles.checkoutButton} onPress={onCheckout}>
-          <Text style={styles.checkoutButtonText}>Commander ({total.toFixed(2)}€)</Text>
+          <Text style={styles.checkoutButtonText}>Commander ({total.toLocaleString()} FCFA)</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -10,6 +10,15 @@ const schema = new mongoose.Schema({
   menu: Array,
   type: { type: String, enum: ['restaurant', 'clothing', 'supermarket', 'other'], default: 'restaurant' },
   status: { type: String, enum: ['active', 'suspended', 'pending'], default: 'active' },
-  ownerId: { type: String }
+  ownerId: { type: String },
+  isPaused: { type: Boolean, default: false },
+  openingHours: { type: Map, of: [String] },
+  payouts: [{
+    amount: Number,
+    date: { type: Date, default: Date.now },
+    status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'completed' },
+    invoiceUrl: String
+  }],
+  balance: { type: Number, default: 0 }
 }, { timestamps: true });
 export const SellerModel = mongoose.model('Seller', schema);

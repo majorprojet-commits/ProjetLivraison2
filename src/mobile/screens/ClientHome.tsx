@@ -8,17 +8,17 @@ import { RestaurantSkeleton } from '../../components/ui/Skeleton';
 import { motion } from 'motion/react';
 
 const CATEGORIES: Category[] = [
-  { id: 1, name: 'Burgers', icon: '🍔' },
-  { id: 2, name: 'Pizza', icon: '🍕' },
-  { id: 3, name: 'Sushi', icon: '🍣' },
-  { id: 4, name: 'Tacos', icon: '🌮' },
-  { id: 5, name: 'Salades', icon: '🥗' },
+  { id: 1, name: 'Local', icon: '🥘' },
+  { id: 2, name: 'Grillades', icon: '🍗' },
+  { id: 3, name: 'Boulangerie', icon: '🥖' },
+  { id: 4, name: 'Boissons', icon: '🍺' },
+  { id: 5, name: 'Marché', icon: '🥬' },
 ];
 
 const SELLERS: Seller[] = [
-  { id: 'r1', name: 'Burger & Co', rating: 4.8, time: '20-30 min', fee: '2.99€', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80' },
-  { id: 'r2', name: 'Sushi Master', rating: 4.9, time: '35-45 min', fee: 'Gratuit', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80' },
-  { id: 'r3', name: 'Pizza Napoli', rating: 4.6, time: '25-40 min', fee: '1.49€', image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80' },
+  { id: 'r1', name: 'Le Terroir Camerounais', rating: 4.9, time: '25-40 min', fee: '500 FCFA', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80' },
+  { id: 'r2', name: 'Saveurs de l\'Ouest', rating: 4.8, time: '30-50 min', fee: '700 FCFA', image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80' },
+  { id: 'r3', name: 'Boulangerie du Littoral', rating: 4.7, time: '15-25 min', fee: '300 FCFA', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80' },
 ];
 
 export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (seller: Seller) => void }) {
@@ -79,7 +79,7 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
         },
         (error) => {
           console.error('Location error:', error);
-          setLocation('Paris, France'); // Fallback
+          setLocation('Douala, Cameroun'); // Fallback
         }
       );
     }
@@ -237,7 +237,7 @@ export default function ClientHome({ onPressRestaurant }: { onPressRestaurant: (
                       <View style={styles.sellerMeta}>
                         <Clock size={14} color="#94a3b8" />
                         <Text style={styles.metaText}>
-                          {seller.deliveryTime || '20-30'} min • {seller.deliveryFee && parseFloat(seller.deliveryFee) > 0 ? `${seller.deliveryFee} €` : 'Livraison gratuite'}
+                          {seller.deliveryTime || '20-30'} min • {seller.deliveryFee && parseFloat(seller.deliveryFee) > 0 ? `${seller.deliveryFee} FCFA` : 'Livraison gratuite'}
                         </Text>
                       </View>
                       {seller.tags && seller.tags.length > 0 && (

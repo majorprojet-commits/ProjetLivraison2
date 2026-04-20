@@ -19,5 +19,6 @@ router.get('/me', authMiddleware, ctrl.getProfile);
 router.put('/me', authMiddleware, ctrl.updateProfile);
 router.put('/me/promote', authMiddleware, ctrl.promoteToAdmin);
 router.get('/', authMiddleware, roleMiddleware(['admin']), ctrl.getAll);
+router.post('/', authMiddleware, roleMiddleware(['admin']), ctrl.create);
 router.put('/:id/role', authMiddleware, roleMiddleware(['admin']), ctrl.updateRole);
 export default router;

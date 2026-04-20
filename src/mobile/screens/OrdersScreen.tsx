@@ -113,7 +113,7 @@ export default function OrdersScreen({ onCancelOrder }: OrdersScreenProps) {
     fetchOrders();
   };
 
-  const formatPrice = (price: number) => price.toFixed(2) + ' €';
+  const formatPrice = (price: number) => price.toLocaleString() + ' FCFA';
 
   const getStatusColor = (status: string) => {
     switch (status) {

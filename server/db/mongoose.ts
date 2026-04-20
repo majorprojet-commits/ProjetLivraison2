@@ -7,73 +7,73 @@ import { OrderModel } from './models/Order.js';
 const SEED_SELLERS = [
   {
     _id: 'r1',
-    name: 'Burger & Co',
-    rating: 4.8,
-    deliveryTime: '20-30 min',
-    deliveryFee: 2.99,
-    tags: ['Burgers', 'Américain', 'Fast Food'],
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
+    name: 'Le Terroir Camerounais',
+    rating: 4.9,
+    deliveryTime: '25-40 min',
+    deliveryFee: 500,
+    tags: ['Camerounais', 'Traditionnel', 'Ndolé', 'Poulet DG'],
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
     type: 'restaurant',
     menu: [
       { 
         id: 'm1', 
-        name: 'Classic Cheeseburger', 
-        price: 8.99, 
-        description: 'Bœuf, cheddar, salade, tomate, sauce maison', 
-        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=200&q=80',
+        name: 'Ndolé Royal', 
+        price: 3500, 
+        description: 'Plat traditionnel à base de feuilles de ndolé, arachides, viande de bœuf et crevettes. Servi avec miondo.', 
+        image: 'https://picsum.photos/seed/ndole/200/200',
         options: [
           {
             id: 'opt1',
-            name: 'Cuisson',
+            name: 'Accompagnement',
             required: true,
             choices: [
-              { id: 'c1', name: 'Saignant', priceExtra: 0 },
-              { id: 'c2', name: 'À point', priceExtra: 0 },
-              { id: 'c3', name: 'Bien cuit', priceExtra: 0 }
+              { id: 'c1', name: 'Miondo', priceExtra: 0 },
+              { id: 'c2', name: 'Plantain bouilli', priceExtra: 0 },
+              { id: 'c3', name: 'Plantain frit', priceExtra: 200 },
+              { id: 'c4', name: 'Riz', priceExtra: 0 }
             ]
           },
           {
             id: 'opt2',
-            name: 'Suppléments',
+            name: 'Suppléments Crevettes',
             required: false,
             choices: [
-              { id: 'c4', name: 'Bacon', priceExtra: 1.50 },
-              { id: 'c5', name: 'Fromage', priceExtra: 0.80 },
-              { id: 'c6', name: 'Oignons frits', priceExtra: 0.50 }
+              { id: 'c5', name: 'Petite portion', priceExtra: 500 },
+              { id: 'c6', name: 'Grande portion', priceExtra: 1000 }
             ]
           }
         ]
       },
-      { id: 'm2', name: 'Double Bacon Burger', price: 11.99, description: 'Double bœuf, double bacon, cheddar', image: 'https://images.unsplash.com/photo-1594212202875-86ac4ce40b6b?auto=format&fit=crop&w=200&q=80' },
-      { id: 'm3', name: 'Frites Maison', price: 3.50, description: 'Portion généreuse de frites croustillantes', image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=200&q=80' },
+      { id: 'm2', name: 'Poulet DG', price: 4500, description: 'Poulet frit avec plantains mûrs, carottes, haricots verts et poivrons.', image: 'https://picsum.photos/seed/pouletdg/200/200' },
+      { id: 'm3', name: 'Poisson Braisé (Bar)', price: 5000, description: 'Bar frais braisé au feu de bois avec épices locales.', image: 'https://picsum.photos/seed/fish/200/200' },
     ]
   },
   {
     _id: 'r2',
-    name: 'Sushi Master',
-    rating: 4.9,
-    deliveryTime: '35-45 min',
-    deliveryFee: 0,
-    tags: ['Japonais', 'Sushi', 'Sain'],
-    image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80',
+    name: 'Saveurs de l\'Ouest',
+    rating: 4.8,
+    deliveryTime: '30-50 min',
+    deliveryFee: 700,
+    tags: ['Achu', 'Kondre', 'Traditionnel'],
+    image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
     type: 'restaurant',
     menu: [
-      { id: 'm4', name: 'Plateau Maki Mix (18p)', price: 18.50, description: 'Saumon, thon, avocat, cheese', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=200&q=80' },
-      { id: 'm5', name: 'California Rolls (8p)', price: 7.90, description: 'Saumon, avocat, sésame', image: 'https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=200&q=80' },
+      { id: 'm4', name: 'Achu (Yellow Soup)', price: 3000, description: 'Taro pilé servi avec la célèbre sauce jaune et peau de bœuf.', image: 'https://picsum.photos/seed/achu/200/200' },
+      { id: 'm5', name: 'Kocki (Gâteau de Corn)', price: 1500, description: 'Gâteau de haricots cornille à l\'huile de palme.', image: 'https://picsum.photos/seed/koki/200/200' },
     ]
   },
   {
     _id: 'r3',
-    name: 'Pizza Napoli',
-    rating: 4.6,
-    deliveryTime: '25-40 min',
-    deliveryFee: 1.49,
-    tags: ['Italien', 'Pizza', 'Comfort Food'],
-    image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80',
+    name: 'Boulangerie du Littoral',
+    rating: 4.7,
+    deliveryTime: '15-25 min',
+    deliveryFee: 300,
+    tags: ['Pâtisserie', 'Petit-déjeuner'],
+    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
     type: 'restaurant',
     menu: [
-      { id: 'm6', name: 'Pizza Margherita', price: 12.00, description: 'Sauce tomate, mozzarella di bufala, basilic', image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=200&q=80' },
-      { id: 'm7', name: 'Pizza 4 Fromages', price: 15.50, description: 'Mozzarella, gorgonzola, chèvre, parmesan', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80' },
+      { id: 'm6', name: 'Beignets Haricot Bouillie', price: 500, description: 'Le petit déjeuner classique camerounais.', image: 'https://picsum.photos/seed/beignets/200/200' },
+      { id: 'm7', name: 'Pain Chargé (Spaghetti)', price: 800, description: 'Pain frais garni de spaghettis sautés et omelette.', image: 'https://picsum.photos/seed/sandwich/200/200' },
     ]
   }
 ];

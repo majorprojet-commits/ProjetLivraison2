@@ -5,6 +5,8 @@ import { GetUsers } from '../../usecases/GetUsers.ts';
 import { UpdateUserRole } from '../../usecases/UpdateUserRole.ts';
 import { UserVM } from '../viewmodels/UserVM.ts';
 import { AuthRequest } from '../middleware/auth.ts';
+import { UserModel } from '../../db/models/User.ts';
+import { User } from '../../core/entities/User.ts';
 
 export class UserCtrl {
   constructor(
@@ -13,6 +15,22 @@ export class UserCtrl {
     private getUsers?: GetUsers,
     private updateUserRole?: UpdateUserRole
   ) {}
+
+  create = async (req: AuthRequest, res: Response) => {
+    try {
+      const id = 'u' + Math.random().toString(36).substr(2, 9);
+      const d = await UserModel.create({
+        ...req.body,
+        _id: id,
+        isBanned: false,
+        createdAt: new Date()
+      });
+      const user = new User(d._id.toString(), d.name||'', d.email||'', d.phone||'', d.role||'', d.password, d.sellerId, d.isBanned);
+      res.status(201).json(UserVM.format(user));
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Server Error' });
+    }
+  };
   
   getProfile = async (req: AuthRequest, res: Response) => {
     try {

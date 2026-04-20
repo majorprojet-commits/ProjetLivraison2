@@ -83,7 +83,7 @@ export default function RestaurantDetail({ restaurant, onBack, cart, onAddToCart
                 {restaurant.deliveryTime || restaurant.time}
               </Text>
             </View>
-            <Text style={styles.metaText}>{restaurant.deliveryFee !== undefined ? `${restaurant.deliveryFee}€` : restaurant.fee}</Text>
+            <Text style={styles.metaText}>{restaurant.deliveryFee !== undefined ? `${restaurant.deliveryFee} FCFA` : restaurant.fee}</Text>
           </View>
         </motion.div>
 
@@ -115,7 +115,7 @@ export default function RestaurantDetail({ restaurant, onBack, cart, onAddToCart
                     <View style={styles.itemInfo}>
                       <Text style={styles.itemName}>{item.name}</Text>
                       <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
-                      <Text style={styles.itemPrice}>{item.price.toFixed(2)} €</Text>
+                      <Text style={styles.itemPrice}>{item.price.toLocaleString()} FCFA</Text>
                       {item.available === false && (
                         <View style={styles.soldOutBadge}>
                           <Text style={styles.soldOutText}>ÉPUISÉ</Text>
@@ -177,7 +177,7 @@ export default function RestaurantDetail({ restaurant, onBack, cart, onAddToCart
                           selectedChoices[opt.id]?.id === choice.id && styles.choiceTextSelected
                         ]}>{choice.name}</Text>
                         {choice.priceExtra > 0 && (
-                          <Text style={styles.choicePrice}>+{choice.priceExtra.toFixed(2)}€</Text>
+                          <Text style={styles.choicePrice}>+{choice.priceExtra.toLocaleString()} FCFA</Text>
                         )}
                       </TouchableOpacity>
                     ))}
@@ -209,7 +209,7 @@ export default function RestaurantDetail({ restaurant, onBack, cart, onAddToCart
             <ShoppingCart size={20} color="#fff" />
             <Text style={styles.cartText}>Voir le panier ({cart.length})</Text>
           </View>
-          <Text style={styles.cartTotal}>{total.toFixed(2)} €</Text>
+          <Text style={styles.cartTotal}>{total.toLocaleString()} FCFA</Text>
         </TouchableOpacity>
       )}
     </View>

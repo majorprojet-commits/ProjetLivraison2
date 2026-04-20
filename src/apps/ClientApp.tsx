@@ -803,7 +803,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                         </div>
                       </div>
                       <p className={cn("text-sm mt-1 font-medium", isDark ? "text-gray-400" : "text-gray-500")}>
-                        {sellerItem.deliveryFee === 0 ? t.free : `${sellerItem.deliveryFee.toFixed(2)} €`} de frais de livraison
+                        {sellerItem.deliveryFee === 0 ? t.free : `${sellerItem.deliveryFee.toLocaleString()} FCFA`} de frais de livraison
                       </p>
                     </div>
                   ))}
@@ -859,7 +859,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                         <div className="flex-1">
                           <h3 className="font-bold text-lg">{item.name}</h3>
                           <p className={cn("text-sm mt-1 line-clamp-2", isDark ? "text-gray-400" : "text-gray-500")}>{item.description}</p>
-                          <p className="font-black mt-2">{item.price.toFixed(2)} €</p>
+                          <p className="font-black mt-2">{item.price.toLocaleString()} FCFA</p>
                         </div>
                         <div className="relative w-28 h-28 flex-shrink-0">
                           <img 
@@ -956,7 +956,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                           <img src={order.image} alt={order.sellerName} className="w-12 h-12 rounded-xl object-cover" />
                           <div>
                             <h3 className="font-bold">{order.sellerName}</h3>
-                            <p className={cn("text-xs", isDark ? "text-gray-400" : "text-gray-500")}>{order.date} • {order.total.toFixed(2)} €</p>
+                            <p className={cn("text-xs", isDark ? "text-gray-400" : "text-gray-500")}>{order.date} • {order.total.toLocaleString()} FCFA</p>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -997,16 +997,16 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                                     </span>
                                     <span className={isDark ? "text-gray-300" : "text-gray-700"}>{item.name}</span>
                                   </div>
-                                  <span className={isDark ? "text-gray-400" : "text-gray-500"}>{(item.price * item.quantity).toFixed(2)} €</span>
+                                  <span className={isDark ? "text-gray-400" : "text-gray-500"}>{(item.price * item.quantity).toLocaleString()} FCFA</span>
                                 </div>
                               ))}
                               <div className={cn("mt-3 pt-3 border-t flex justify-between text-xs", isDark ? "border-gray-800 text-gray-400" : "border-gray-100 text-gray-500")}>
                                 <span>{t.deliveryFee}</span>
-                                <span>{order.deliveryFee === 0 ? t.free : `${order.deliveryFee.toFixed(2)} €`}</span>
+                                <span>{order.deliveryFee === 0 ? t.free : `${order.deliveryFee.toLocaleString()} FCFA`}</span>
                               </div>
                               <div className={cn("mt-1 flex justify-between font-bold text-sm", isDark ? "text-white" : "text-black")}>
                                 <span>{t.total}</span>
-                                <span>{order.total.toFixed(2)} €</span>
+                                <span>{order.total.toLocaleString()} FCFA</span>
                               </div>
                             </div>
                           </motion.div>
@@ -1465,7 +1465,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                   </div>
                   <span className="font-medium">{t.viewCart}</span>
                 </div>
-                <span className="font-bold">{cartTotal.toFixed(2)} €</span>
+                <span className="font-bold">{cartTotal.toLocaleString()} FCFA</span>
               </button>
             </motion.div>
           )}
@@ -1549,7 +1549,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                             : (isDark ? "border-gray-800 text-gray-400" : "border-gray-100 text-gray-600")
                         )}
                       >
-                        {amount === 0 ? t.noTip : `${amount}€`}
+                        {amount === 0 ? t.noTip : `${amount} FCFA`}
                       </button>
                     ))}
                   </div>
@@ -1577,7 +1577,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                         </div>
                         <span className="font-medium">{item.name}</span>
                       </div>
-                      <span className="font-medium">{(item.price * item.quantity).toFixed(2)} €</span>
+                      <span className="font-medium">{(item.price * item.quantity).toLocaleString()} FCFA</span>
                     </div>
                   ))}
                 </div>
@@ -1609,22 +1609,22 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                 <div className={cn("pt-4 border-t space-y-2", isDark ? "border-gray-800" : "border-gray-100")}>
                   <div className="flex justify-between text-sm">
                     <span className={isDark ? "text-gray-400" : "text-gray-500"}>{t.subtotal}</span>
-                    <span>{cartSubtotal.toFixed(2)} €</span>
+                    <span>{cartSubtotal.toLocaleString()} FCFA</span>
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-sm text-green-500">
                       <span>{t.discount}</span>
-                      <span>-{discountAmount.toFixed(2)} €</span>
+                      <span>-{discountAmount.toLocaleString()} FCFA</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
                     <span className={isDark ? "text-gray-400" : "text-gray-500"}>{t.deliveryFee}</span>
-                    <span>{deliveryFee === 0 ? t.free : `${deliveryFee.toFixed(2)} €`}</span>
+                    <span>{deliveryFee === 0 ? t.free : `${deliveryFee.toLocaleString()} FCFA`}</span>
                   </div>
                   {tipAmount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className={isDark ? "text-gray-400" : "text-gray-500"}>{t.addTip}</span>
-                      <span>{tipAmount.toFixed(2)} €</span>
+                      <span>{tipAmount.toLocaleString()} FCFA</span>
                     </div>
                   )}
                 </div>
@@ -1637,7 +1637,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                   className={cn("w-full py-4 rounded-full font-bold text-lg flex justify-between px-6", isDark ? "bg-white text-black" : "bg-black text-white")}
                 >
                   <span>{t.checkout}</span>
-                  <span>{(cartTotal + tipAmount).toFixed(2)} €</span>
+                  <span>{(cartTotal + tipAmount).toLocaleString()} FCFA</span>
                 </button>
               </div>
             </motion.div>
@@ -1680,7 +1680,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                     <div>
                       <h3 className="font-black text-lg mb-4">Options</h3>
                       <div className="space-y-4">
-                        {['Sans oignons', 'Sauce supplémentaire', 'Format XL (+2.00€)'].map(opt => (
+                        {['Sans oignons', 'Sauce supplémentaire', 'Format XL (+1 300 FCFA)'].map(opt => (
                           <label key={opt} className="flex items-center justify-between cursor-pointer group">
                             <span className={cn("font-medium transition-colors", isDark ? "text-gray-300 group-hover:text-white" : "text-gray-700 group-hover:text-black")}>{opt}</span>
                             <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", isDark ? "border-gray-700" : "border-gray-200")}>
@@ -1703,7 +1703,7 @@ export default function ClientApp({ token: propToken, user: propUser, onLogout }
                     className={cn("w-full py-5 rounded-full font-black text-xl flex justify-between px-8 transition-transform active:scale-95 shadow-xl", isDark ? "bg-white text-black" : "bg-black text-white")}
                   >
                     <span>Ajouter au panier</span>
-                    <span>{selectedItem.price.toFixed(2)} €</span>
+                    <span>{selectedItem.price.toLocaleString()} FCFA</span>
                   </button>
                 </div>
               </motion.div>

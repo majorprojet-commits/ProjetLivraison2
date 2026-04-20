@@ -5,12 +5,12 @@ import { SellerModel } from '../models/Seller.js';
 export class MongoSellerRepo implements ISellerRepo {
   async findAll(): Promise<Seller[]> {
     const docs = await SellerModel.find();
-    return docs.map(d => new Seller(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[], (d as any).type || 'restaurant'));
+    return docs.map(d => new Seller(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[], (d as any).type || 'restaurant', (d as any).status || 'active', (d as any).ownerId));
   }
   async findById(id: string): Promise<Seller | null> {
     const d = await SellerModel.findById(id);
     if (!d) return null;
-    return new Seller(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[], (d as any).type || 'restaurant');
+    return new Seller(d._id.toString(), d.name, d.rating, d.tags, d.image||'', d.deliveryTime||'', d.deliveryFee||0, d.menu||[], (d as any).type || 'restaurant', (d as any).status || 'active', (d as any).ownerId);
   }
   async updateMenu(id: string, menu: any[]): Promise<void> {
     await SellerModel.findByIdAndUpdate(id, { menu });

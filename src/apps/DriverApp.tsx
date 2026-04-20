@@ -95,7 +95,7 @@ export default function DriverApp({ token, onLogout, user }: { token: string, on
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gains du jour</p>
-            <p className="text-lg font-black text-green-600">{dailyEarnings.toFixed(2)} €</p>
+            <p className="text-lg font-black text-green-600">{dailyEarnings.toLocaleString()} FCFA</p>
           </div>
           <button onClick={onLogout} className="flex items-center gap-2 text-red-500 font-medium hover:bg-red-50 px-4 py-2 rounded-lg transition-colors">
             <LogOut className="w-4 h-4" /> Déconnexion
@@ -211,7 +211,7 @@ function OrderCard({ order, onAction, actionText, actionColor, disabled = false 
           <p className="font-black text-lg mt-0.5">{new Date(order.date || order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
         </div>
         <div className="text-right">
-          <p className="font-black text-lg">{order.total.toFixed(2)} €</p>
+          <p className="font-black text-lg">{order.total.toLocaleString()} FCFA</p>
           {order.status === 'delivering' && (
              <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded uppercase">Retrait: {order.pickupCode}</span>
           )}

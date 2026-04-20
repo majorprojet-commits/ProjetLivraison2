@@ -22,11 +22,15 @@ const updateSettings = new UpdateSellerSettings(repo);
 const ctrl = new SellerCtrl(getSellers, getMenu, addDish, updateDishAvailability, updateDish, deleteDish, updateSettings);
 
 router.get('/', ctrl.getAll);
+router.post('/', authMiddleware, roleMiddleware(['admin']), ctrl.create);
 router.get('/:id/menu', ctrl.getMenu);
 router.post('/:id/menu', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.addDish);
 router.put('/:id/menu/:dishId/availability', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.updateDishAvailability);
 router.put('/:id/menu/:dishId', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.updateDish);
 router.delete('/:id/menu/:dishId', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.deleteDish);
 router.put('/:id/settings', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.updateSettings);
+router.put('/:id/pause', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.togglePause);
+router.put('/:id/hours', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.updateOpeningHours);
+router.get('/:id/payouts', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.getPayouts);
 
 export default router;

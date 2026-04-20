@@ -5,7 +5,7 @@ export class Order {
     public sellerId: string,
     public items: any[],
     public total: number,
-    public status: string,
+    public status: 'pending' | 'accepted' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled',
     public createdAt: Date,
     public driverId?: string,
     public pickupCode?: string,
@@ -13,6 +13,7 @@ export class Order {
     public deliveryPhoto?: string,
     public prepTimeExtension?: number,
     public driverEta?: Date,
-    public pickedUpAt?: Date
+    public pickedUpAt?: Date,
+    public statusHistory: { status: string, timestamp: Date }[] = []
   ) {}
 }

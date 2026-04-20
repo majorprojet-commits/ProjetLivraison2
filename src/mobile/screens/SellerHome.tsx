@@ -146,7 +146,7 @@ export default function SellerHome() {
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: '#f5f3ff' }]}>
             <TrendingUp size={24} color="#9333ea" />
-            <Text style={styles.statVal}>{dailyRevenue.toFixed(2)} €</Text>
+            <Text style={styles.statVal}>{dailyRevenue.toLocaleString()} FCFA</Text>
             <Text style={styles.statLabel}>CA du jour</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#eff6ff' }]}>
@@ -242,7 +242,7 @@ function HistoryItem({ order }: { order: any }) {
         <Text style={styles.historyDate}>{time}</Text>
       </View>
       <View style={styles.historyRight}>
-        <Text style={styles.historyAmount}>{order.total.toFixed(2)} €</Text>
+        <Text style={styles.historyAmount}>{order.total.toLocaleString()} FCFA</Text>
         <Text style={[styles.historyStatus, { color: getStatusColor(order.status) }]}>
           {getStatusText(order.status)}
         </Text>

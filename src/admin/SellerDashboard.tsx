@@ -338,7 +338,7 @@ export default function SellerDashboard({
                 onChange={e => setNewDish({...newDish, name: e.target.value})}
               />
               <input 
-                placeholder="Prix (€)" 
+                placeholder="Prix (FCFA)" 
                 type="number"
                 className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold"
                 value={newDish.price}
@@ -453,7 +453,7 @@ export default function SellerDashboard({
                             }}
                           />
                           <input 
-                            placeholder="+0.00€" 
+                            placeholder="+0 FCFA" 
                             type="number"
                             className="w-20 bg-white border-none rounded-xl px-4 py-2 text-xs font-bold"
                             value={choice.priceExtra}
@@ -520,7 +520,7 @@ function SellerStatsView({ seller, orders }: any) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard label="Revenus Totaux" value={`${revenue.toFixed(2)} €`} icon={DollarSign} trend="+12%" color="orange" />
+        <StatCard label="Revenus Totaux" value={`${revenue.toLocaleString()} FCFA`} icon={DollarSign} trend="+12%" color="orange" />
         <StatCard label="Commandes" value={orders.length} icon={Package} trend="+5" color="blue" />
         <StatCard label="Note Moyenne" value={seller.rating} icon={Star} trend="Stable" color="green" />
         <StatCard label="En cours" value={orders.filter((o: any) => ['pending', 'preparing', 'ready', 'delivering'].includes(o.status)).length} icon={Clock} trend="Live" color="violet" />
@@ -561,7 +561,7 @@ function SellerStatsView({ seller, orders }: any) {
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{order.status}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-black text-gray-900">{order.total.toFixed(2)} €</p>
+                  <p className="text-sm font-black text-gray-900">{order.total.toLocaleString()} FCFA</p>
                   <p className="text-[10px] text-gray-400 font-bold">{order.date ? format(new Date(order.date), 'HH:mm') : '--:--'}</p>
                 </div>
               </div>
@@ -651,7 +651,7 @@ function SellerOrdersView({ orders, onUpdateStatus }: { orders: any[], onUpdateS
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <span className="font-black text-sm text-orange-600">{o.total.toFixed(2)} €</span>
+                    <span className="font-black text-sm text-orange-600">{o.total.toLocaleString()} FCFA</span>
                   </td>
                   <td className="px-8 py-5">
                     <span className={cn(
@@ -741,7 +741,7 @@ function SellerMenuView({ menu, onAdd, onToggleAvailability }: { menu: any[], on
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h4 className="font-black text-lg text-gray-900">{item.name}</h4>
-                  <p className="text-xl font-black text-orange-600">{item.price.toFixed(2)} €</p>
+                  <p className="text-xl font-black text-orange-600">{item.price.toLocaleString()} FCFA</p>
                 </div>
                 <button 
                   onClick={() => onToggleAvailability(item.id, item.available !== false)}
