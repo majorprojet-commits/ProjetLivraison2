@@ -231,6 +231,19 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
     } catch (e) { console.error(e); }
   };
 
+  const handleUpdatePromos = async (promos: any) => {
+    try {
+      const res = await fetch(`/api/sellers/${sellerId}/promos`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ promos })
+      });
+      if (res.ok) {
+        setSellerData((prev: any) => ({ ...prev, promos }));
+      }
+    } catch (e) { console.error(e); }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -334,7 +347,7 @@ export default function SellerApp({ token, onLogout, user }: { token: string, on
         {activeTab === 'menu' && <MenuView menu={menu} onAddDish={handleAddDish} onUpdateDish={handleUpdateDish} onDeleteDish={handleDeleteDish} term={term} hours={sellerData?.openingHours} onUpdateHours={handleUpdateHours} />}
         {activeTab === 'inventory' && <QuickInventory menu={menu} token={token} sellerId={sellerId} />}
         {activeTab === 'finance' && <FinanceView orders={orders} payoutsData={payoutsData} />}
-        {activeTab === 'promos' && <PromosView />}
+        {activeTab === 'promos' && <PromosView promos={sellerData?.promos || []} onUpdatePromos={handleUpdatePromos} />}
         {activeTab === 'dashboard' && <DashboardView analytics={{ dailyRevenue: orders.filter(o => o.status === 'delivered' && new Date(o.createdAt) > subDays(new Date(), 1)).reduce((acc, o) => acc + o.total, 0), weeklyRevenue: orders.filter(o => o.status === 'delivered' && new Date(o.createdAt) > subDays(new Date(), 7)).reduce((acc, o) => acc + o.total, 0), cancellationRate: 0, revenueHistory: [], topDishes: [] }} />}
         {activeTab === 'settings' && <SettingsView seller={sellerData} onUpdate={handleUpdateSettings} onTogglePause={handleTogglePause} />}
       </main>
@@ -1122,17 +1135,40 @@ function ReviewsView({ reviews }: { reviews: any[] }) {
   );
 }
 
-function PromosView() {
-  const promos = [
-    { id: '1', title: '-20% sur tout le menu', type: 'percentage', value: 20, active: true, end: '2024-04-30' },
-    { id: '2', title: '1 Burger acheté = 1 offert', type: 'bogo', value: 1, active: false, end: '2024-03-15' }
-  ];
+function PromosView({ promos, onUpdatePromos }: { promos: any[], onUpdatePromos: (promos: any[]) => void }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    type: 'percentage',
+    value: '',
+    end: ''
+  });
+
+  const handleAdd = () => {
+    const newPromo = {
+      id: Math.random().toString(36).substring(7),
+      ...formData,
+      value: parseFloat(formData.value) || 0,
+      active: true
+    };
+    onUpdatePromos([...promos, newPromo]);
+    setIsModalOpen(false);
+    setFormData({ title: '', type: 'percentage', value: '', end: '' });
+  };
+
+  const togglePromo = (id: string) => {
+    onUpdatePromos(promos.map(p => p.id === id ? { ...p, active: !p.active } : p));
+  };
+
+  const deletePromo = (id: string) => {
+    onUpdatePromos(promos.filter(p => p.id !== id));
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-black">Vos Offres Actives</h3>
-        <button className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-orange-100 active:scale-95 transition-transform">
+        <button onClick={() => setIsModalOpen(true)} className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg shadow-orange-100 active:scale-95 transition-transform">
           <Plus className="w-5 h-5" /> Créer une Promo
         </button>
       </div>
@@ -1155,10 +1191,11 @@ function PromosView() {
 
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
-                <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors"><Edit3 className="w-5 h-5" /></button>
-                <button className="p-2 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-5 h-5" /></button>
+                <button onClick={() => deletePromo(promo.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors"><Trash2 className="w-5 h-5" /></button>
               </div>
-              <button className={cn(
+              <button 
+                onClick={() => togglePromo(promo.id)}
+                className={cn(
                 "px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-colors",
                 promo.active ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-green-50 text-green-600 hover:bg-green-100"
               )}>
@@ -1168,6 +1205,43 @@ function PromosView() {
           </div>
         ))}
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-2xl font-black mb-6">Créer une Promo</h3>
+            
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Titre (ex: Solde d'été)</label>
+                <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-gray-50 border-none rounded-xl p-4 font-bold focus:ring-2 focus:ring-orange-500" placeholder="Titre de l'offre" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Type</label>
+                  <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-gray-50 border-none rounded-xl p-4 font-bold focus:ring-2 focus:ring-orange-500">
+                    <option value="percentage">Pourcentage (%)</option>
+                    <option value="fixed">Montant fixe</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Valeur</label>
+                  <input type="number" value={formData.value} onChange={e => setFormData({...formData, value: e.target.value})} className="w-full bg-gray-50 border-none rounded-xl p-4 font-bold focus:ring-2 focus:ring-orange-500" placeholder="Ex: 20" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Date de fin</label>
+                <input type="date" value={formData.end} onChange={e => setFormData({...formData, end: e.target.value})} className="w-full bg-gray-50 border-none rounded-xl p-4 font-bold focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 rounded-2xl bg-gray-100 text-gray-500 font-black uppercase tracking-widest text-xs">Annuler</button>
+              <button onClick={handleAdd} className="flex-[2] py-4 rounded-2xl bg-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-100">Créer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

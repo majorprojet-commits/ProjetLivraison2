@@ -174,4 +174,19 @@ export class SellerCtrl {
       res.status(500).json({ error: e.message || 'Server Error' });
     }
   };
+
+  updatePromos = async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      if (req.user.role === 'seller' && req.user.sellerId !== id) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      const { promos } = req.body;
+      const seller = await SellerModel.findByIdAndUpdate(id, { promos }, { new: true });
+      if (!seller) return res.status(404).json({ error: 'Seller not found' });
+      res.json({ success: true, promos: seller.get('promos') });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || 'Server Error' });
+    }
+  };
 }

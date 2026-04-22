@@ -32,5 +32,6 @@ router.put('/:id/settings', authMiddleware, roleMiddleware(['seller', 'admin']),
 router.put('/:id/pause', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.togglePause);
 router.put('/:id/hours', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.updateOpeningHours);
 router.get('/:id/payouts', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.getPayouts);
+router.put('/:id/promos', authMiddleware, roleMiddleware(['seller', 'admin']), ctrl.updatePromos);
 
 export default router;

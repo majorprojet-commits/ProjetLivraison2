@@ -19,6 +19,14 @@ const schema = new mongoose.Schema({
     status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'completed' },
     invoiceUrl: String
   }],
+  promos: [{
+    id: String,
+    title: String,
+    type: { type: String, enum: ['percentage', 'bogo', 'fixed'] },
+    value: Number,
+    active: { type: Boolean, default: true },
+    end: String
+  }],
   balance: { type: Number, default: 0 }
 }, { timestamps: true });
 export const SellerModel = mongoose.model('Seller', schema);
